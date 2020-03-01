@@ -1,0 +1,5 @@
+#Bibliography manager config file
+#Parameters are:
+#default_file (relative or absolute)
+#overwrite_flags (True or False)
+#default_category (hep-th, hep-ph, cond-mat, ...)
