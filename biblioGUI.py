@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-
 from tkinter import *
 from tkinter import messagebox, filedialog, simpledialog, font
 import webbrowser
@@ -10,46 +8,16 @@ from otherWidgets import *      #Some functionalities are compatible with TkTree
 from biblioDB import *
 from inspireQuery import *
 
-dir_path = os.path.dirname(os.path.realpath(__file__))
-
-overwrite_flags = True
-ini_def_cat = "hep-th"
-ini_path = dir_path + "/../../PhD/LaTeX/Bibliography/biblio.bib"
-
-#Reads the config file if it exists
-try:
-    with open('bibconfig') as file:
-        for l in file.readlines():
-            if l[0] != "#" and l != "\n":
-                equals = l.index("=")+1
-                key, val = l[:equals-1], l[equals:-1]
-                key = key.strip()
-                val = val.strip("\n ")
-                if key == 'default_file':
-                    if os.path.isabs(val):
-                        ini_path = val
-                    else:
-                        ini_path = dir_path + "/" + val
-                elif key == 'overwrite_flags':
-                    overwrite_flags = eval(val)
-                elif key == 'default_category':
-                    ini_def_cat = val
-except:
-    pass
-    
-
-#Takes the file from the first argument, otherwise loads a default one
-default_filename = sys.argv[1] if len(sys.argv) > 1 else ini_path
 icon = "Icons/icon.png"
-
-"""
-This determines whether to overwrite or add new flags when multiple papers are selected.
-I haven't yet decided what behavior I want it to have
-"""
 
 class Root:
     """This is the main window"""
-    def __init__(self, master, bibliography):
+    def __init__(self, master, bibliography, default_filename, ini_def_cat, overwrite_flags, *args):
+
+        self.sysargv = args
+        self.ini_def_cat = ini_def_cat
+        self.overwrite_flags = overwrite_flags
+
         #The Biblio object with which we interact
         self.biblio = bibliography
 
@@ -191,7 +159,7 @@ class Root:
 
         #Variables for the arxiv category
         self.def_cat = StringVar()
-        self.def_cat.set(ini_def_cat)
+        self.def_cat.set(self.ini_def_cat)
 
         #Menu
         self.menu = Menu(master, font = self.listfont)
@@ -328,7 +296,7 @@ class Root:
                 for c in self.paper_list.column_dict:
                     self.paper_list.column_dict[c].list_box.yview_moveto(1.0)
         except FileNotFoundError:
-            if len(sys.argv) > 1:
+            if len(self.sysargv) > 1:
                 print("The given file is not available.")
             else:
                 print("The default file is not available.")
@@ -616,7 +584,7 @@ class Root:
             self.bibentry.config(fg = "gray35")
             #Ok, this is kind of weird, but I have a check that makes the color back to black only if there is something bound to <1>
             self.bibentry.binding = self.bibentry.bind("<1>", lambda x: None)
-            if overwrite_flags:
+            if self.overwrite_flags:
                 line1 = "overwrites instead of adding"
             else:
                 line1 = "adds instead of overwriting"
@@ -767,7 +735,7 @@ class Root:
             #Modify the flags of a group of papers
             entlist = [self.paper_list.get(s)[0] for s in sel]
             def merge(str1, str2):
-                if overwrite_flags:
+                if self.overwrite_flags:
                     ret = str2
                 else:
                     ret = str1
@@ -786,14 +754,14 @@ class Root:
                 entry = self.biblio.entries[en]
                 self.biblio.link_comment_entry(entry)
             if flag == "":
-                if overwrite_flags:
+                if self.overwrite_flags:
                     print(f"The group(s) have been cleared from {len(sel)} entries.")
                 else:
                     print("I did not do anything.")
             else:
                 flaglong = ",".join([self.category_dict[a] for a in flag])
                 grp,has = ("", "s") if len(flag) == 1 else ("s", "ve")
-                added = "assigned" if overwrite_flags else "added"
+                added = "assigned" if self.overwrite_flags else "added"
                 print(f"The group{grp} {flaglong} ha{has} been {added} to {len(sel)} entries.")
         else:
             print("I did not do anything.")
@@ -801,9 +769,9 @@ class Root:
 
         self.is_modified = True
         if self.current_file == None:
-            master.title("*Bibliography - Untitled")
+            self.master.title("*Bibliography - Untitled")
         else:
-            master.title("*Bibliography - " + self.current_file.split("/")[-1])
+            self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
 
     def remove_info(self, event = None):
         """If the info message in grey is showing in the text box removes that and reverts the configuration, otherwise just erases the textbox."""
@@ -867,9 +835,9 @@ class Root:
 
             self.is_modified = True
             if self.current_file == None:
-                master.title("*Bibliography - Untitled")
+                self.master.title("*Bibliography - Untitled")
             else:
-                master.title("*Bibliography - " + self.current_file.split("/")[-1])
+                self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
             self.disable_buttons()
 
     def on_search(self, event = None):
@@ -911,9 +879,9 @@ class Root:
         self.load_data()
         self.is_modified = True
         if self.current_file == None:
-            master.title("*Bibliography - Untitled")
+            self.master.title("*Bibliography - Untitled")
         else:
-            master.title("*Bibliography - " + self.current_file.split("/")[-1])
+            self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
 
     def on_sort_title(self):
         """Sorts by title"""
@@ -921,9 +889,9 @@ class Root:
         self.load_data()
         self.is_modified = True
         if self.current_file == None:
-            master.title("*Bibliography - Untitled")
+            self.master.title("*Bibliography - Untitled")
         else:
-            master.title("*Bibliography - " + self.current_file.split("/")[-1])
+            self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
 
     def update_all(self):
         """Updates the bibtex entries of all papers"""
@@ -958,9 +926,9 @@ class Root:
         if count > 0:
             self.is_modified = True
             if self.current_file == None:
-                master.title("*Bibliography - Untitled")
+                self.master.title("*Bibliography - Untitled")
             else:
-                master.title("*Bibliography - " + self.current_file.split("/")[-1])
+                self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
             if self.paper_list.curselection() != ():
                self.list_has_changed(self.paper_list.curselection())
 
@@ -972,7 +940,7 @@ class Root:
         self.current_file = None
 
         self.is_modified = False
-        master.title("Bibliography - Untitled")
+        self.master.title("Bibliography - Untitled")
         
 
     def on_open_file(self):
@@ -991,7 +959,7 @@ class Root:
 
                 self.current_file = filename
                 self.is_modified = False
-                master.title("Bibliography - " + filename.split("/")[-1])
+                self.master.title("Bibliography - " + filename.split("/")[-1])
         except (FileNotFoundError, TypeError) as e:
             print("Error occurred when loading file.")
 
@@ -1007,7 +975,7 @@ class Root:
 
                 self.current_file = filename
                 self.is_modified = True
-                master.title("*Bibliography - " + filename.split("/")[-1])
+                self.master.title("*Bibliography - " + filename.split("/")[-1])
         except (FileNotFoundError, TypeError) as e:
             print("Error occurred when loading file.")
                 
@@ -1023,7 +991,7 @@ class Root:
                     
                 self.current_file = filename
                 self.is_modified = False
-                master.title("Bibliography - " + filename.split("/")[-1])
+                self.master.title("Bibliography - " + filename.split("/")[-1])
         except (PermissionError,  TypeError, FileNotFoundError) as e:
             print("Error occurred when saving file.")
 
@@ -1039,7 +1007,7 @@ class Root:
                         file.write(entry.write())
 
                     self.is_modified = False
-                    master.title("Bibliography - " + self.current_file.split("/")[-1])       
+                    self.master.title("Bibliography - " + self.current_file.split("/")[-1])       
             except PermissionError:
                 print("Error occurred when saving file.")
 
@@ -1052,10 +1020,3 @@ class Root:
         else:
             self.master.destroy()
             self.master.quit()          
-        
-
-master = Tk()
-biblio = Biblio()
-root   = Root(master, biblio)
-
-master.mainloop()
