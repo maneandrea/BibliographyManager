@@ -1,4 +1,3 @@
-#!/usr/bin/python3
 import urllib
 from urllib.request import urlopen
 import lxml.html

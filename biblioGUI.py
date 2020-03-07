@@ -1,7 +1,8 @@
 from tkinter import *
 from tkinter import messagebox, filedialog, simpledialog, font
-import webbrowser
+import webbrowser, urllib.request
 import os, sys, time
+from datetime import datetime
 
 #My packages
 from otherWidgets import *      #Some functionalities are compatible with TkTreectrl
@@ -10,19 +11,28 @@ from inspireQuery import *
 
 icon = "Icons/icon.png"
 
+"""
+Add functionality of saving pdfs in the local PC and linking them to the entry in the
+bibliography database. One needs a global flag that specifies whether the paths have
+to be relative or absolute when linked. Furthermore one also needs a global parameter
+with the default folder. How to make this in the GUI I haven't decided yet.
+
+"""
+
 class Root:
     """This is the main window"""
-    def __init__(self, master, bibliography, default_filename, ini_def_cat, overwrite_flags, *args):
+    def __init__(self, master, bibliography, *args, **kwargs):
 
         self.sysargv = args
-        self.ini_def_cat = ini_def_cat
-        self.overwrite_flags = overwrite_flags
+        for key, val in kwargs.items():
+            self.__setattr__(key, val)
+
 
         #The Biblio object with which we interact
         self.biblio = bibliography
 
         #For Save / Save As
-        self.current_file = default_filename
+        self.current_file = self.default_filename
         self.is_modified = False
 
         #Asks the Arxiv number right after pressing Add
@@ -32,7 +42,7 @@ class Root:
         self.master = master
         master.protocol("WM_DELETE_WINDOW", self.on_close)
         master.call('wm', 'iconphoto', master._w, PhotoImage(file = icon))
-        master.title("Bibliography - " + default_filename.split("/")[-1])
+        master.title("Bibliography - " + self.current_file.split("/")[-1])
         self.paned = PanedWindow(master)
         self.paned.config(sashrelief = RAISED, sashwidth = 8)
         ini_halfwidth = 600
@@ -151,6 +161,13 @@ class Root:
         self.tooltip = CreateToolTip(master, self.search_box, text = "Prepend a to search by author, t by title, d by description, "
                                      "n by ArXiv number and nothing by all.\nGroup words with quotes. The search ignores cases.")
 
+        #Local pdf
+        self.local_pdf_label = Label(masterr)
+        self.local_pdf_str = StringVar()
+        self.local_pdf_label.config(textvariable = self.local_pdf_str, font = self.listfont, anchor = W, relief = SUNKEN,
+                               justify = LEFT, height = 1)
+        self.current_pdf_path = ""
+
         #Status bar
         self.status_bar = Label(masterr)
         self.status = StringVar()
@@ -178,6 +195,7 @@ class Root:
         self.filemenu.add_separator()
         self.filemenu.add_command(label = "Exit                          Ctrl+Q", command = self.on_close)
         self.menu.add_cascade(label = "File", menu = self.filemenu)
+        #
         self.editmenu = Menu(self.menu, tearoff = 0, font = self.listfont)
         self.editmenu.add_command(label = "Add", command = self.on_add)
         self.editmenu.add_command(label = "Remove", command = self.on_remove)
@@ -201,6 +219,17 @@ class Root:
         self.editmenu.add_cascade(label = "Sort by...", menu = self.sortby)
         self.editmenu.add_command(label = "Find             Ctrl+F", command = self.on_menu_search)
         self.menu.add_cascade(label = "Edit", menu = self.editmenu)
+        #
+        self.pdfmenu = Menu(self.menu, tearoff = 0, font = self.listfont)
+        self.pdfmenu.add_command(label = "Open PDF online", command = self.on_arxiv_pdf(True))
+        self.pdfmenu.add_command(label = "Open local PDF", command = self.on_arxiv_pdf(), state = DISABLED)
+        self.pdfmenu.add_command(label = "Open abstract page", command = self.on_arxiv_abs())
+        self.pdfmenu.add_separator()
+        self.pdfmenu.add_command(label = "Link to local PDF", command = self.on_link_pdf)
+        self.pdfmenu.add_command(label = "Unlink from local PDF", command = self.on_unlink_pdf)
+        self.pdfmenu.add_command(label = "Save PDF locally and link", command = self.on_save_pdf)
+        self.menu.add_cascade(label = "PDF", menu = self.pdfmenu)
+        #
         master.config(menu = self.menu)
 
         #Binding hotkeys
@@ -242,7 +271,7 @@ class Root:
         self.get_bibtex.grid(row = 2, column = 3, sticky = "swe")
         self.text_box.grid(row = 3, column = 0, sticky = "news")
         self.bibentry.grid(row = 4, column = 0, columnspan = 4, sticky = "news")
-        self.status_bar.grid(row = 5, column = 0, columnspan = 4, sticky = "news")
+        self.status_bar.grid(row = 6, column = 0, columnspan = 4, sticky = "news")
         #self.dropdown_set.grid(row = 3, column = 1, columnspan = 2, sticky = "news")
         self.update_paper.grid(row = 3, column = 3, sticky = "news")
         
@@ -252,6 +281,7 @@ class Root:
 
         #For redirecting stdout to the label status_bar
         class StandardOut():
+            """Redirect standard output to the tooltip in the status bar below"""
             def __init__(self, obj, master, label):
                 self.stream = obj
                 self.master = master
@@ -281,11 +311,28 @@ class Root:
             def flush(self):
                 pass
 
+        class StandardErr():
+            """Redirect standard err to a log file with datestamps"""
+            def __init__(self, path):
+                self.path = os.path.dirname(os.path.realpath(__file__)) + "/" + path
+                self.last_write = datetime(1999,1,1)
+            def write(self, text):
+                with open(self.path, "a") as f:
+                    n = datetime.now()
+                    if (n-self.last_write).total_seconds() > 60:
+                        f.write(datetime.now().strftime('[%a %d-%m-%Y %H:%M:%S]\n'))
+                        self.last_write = datetime.now()
+                    f.write(text)
+            def flush(self):
+                pass
+
         sys.stdout = StandardOut(self.status, self.master, self.status_bar)
+        sys.stderr = StandardErr('error.log')
+        
 
         #If the default file or given exitst, load it
         try:
-            with open(default_filename, "r", encoding = "utf-8") as file:
+            with open(self.default_filename, "r", encoding = "utf-8") as file:
                 contents = file.read()
                 self.biblio.parse(contents)
                 #Drop down menus
@@ -303,6 +350,7 @@ class Root:
             self.create_menus()
             self.on_new_file()
 
+
     def create_menus(self):
         """Creates the dropdown menus for filtering and selecting the paper category and also the one for exporting"""
         #For mapping the entries in the dict to the way they look in the menu
@@ -313,18 +361,22 @@ class Root:
         self.category_dict_inv = {v:k for k,v in self.category_dict.items()}
         
         #Drop down menu for editing the paper category
-        self.categories = list(self.category_dict.values()) + ["Other"]
+        self.categories = list(self.category_dict.values())
         self.dropdown_set_val = StringVar()
         self.dropdown_set_val.set(self.categories[0])
         self.current_category = ""
         self.dropdown_set = OptionMenu(self.frame_right, self.dropdown_set_val, *self.categories)
+        self.dropdown_set.children["menu"].add_separator()
+        self.dropdown_set.children["menu"].add_command(label = "Choose more", command = self.on_change_flags_other)
         self.dropdown_set.config(font = self.listfont, width = 11)
         self.dropdown_set_val.trace_id = self.dropdown_set_val.trace("w", self.on_change_flags)   
 
         #Drop down menu for filtering the paper category
         self.dropdown_filter_val = StringVar()
         self.dropdown_filter_val.set(self.categories[0])
-        self.dropdown_filter = OptionMenu(self.frame_left, self.dropdown_filter_val, command = self.on_filter, *self.categories[:-1])
+        self.dropdown_filter = OptionMenu(self.frame_left, self.dropdown_filter_val, command = self.on_filter, *self.categories)
+        self.dropdown_filter.children["menu"].add_separator()
+        self.dropdown_filter.children["menu"].add_command(label = "Locally saved PDFs", command = self.on_filter_forpdf)
         self.dropdown_filter.config(font = self.listfont)
 
         self.export.menus_already_there = []
@@ -398,7 +450,7 @@ class Root:
             self.popup_menu.entryconfig(5, state = DISABLED)
 
     def on_cut(self):
-        """Cut button on the Menu on the bibentry widged"""
+        """Cut button on the Menu on the bibentry widget"""
         ranges = self.bibentry.tag_ranges(SEL)
         text = self.bibentry.get(*ranges)
         self.master.clipboard_clear()
@@ -410,7 +462,7 @@ class Root:
         self.bibentry.delete(*ranges)
 
     def on_copy(self):
-        """Copy button on the Menu on the bibentry widged"""
+        """Copy button on the Menu on the bibentry widget"""
         ranges = self.bibentry.tag_ranges(SEL)
         text = self.bibentry.get(*ranges)
         self.master.clipboard_clear()
@@ -421,7 +473,7 @@ class Root:
         print(text + " copied to clipboard")
 
     def on_paste(self):
-        """Paste button on the Menu on the bibentry widged"""
+        """Paste button on the Menu on the bibentry widget"""
         try:
             text = self.master.clipboard_get()
         except:
@@ -429,7 +481,7 @@ class Root:
         self.bibentry.insert(INSERT, text)
 
     def on_indent(self):
-        """Indent button on the Menu on the bibentry widged"""
+        """Indent button on the Menu on the bibentry widget"""
         indentation = 6
         ranges = self.bibentry.tag_ranges(SEL)
         ranges = self.bibentry.index(ranges[0]) + "linestart", self.bibentry.index(ranges[1])
@@ -439,7 +491,7 @@ class Root:
         self.bibentry.insert(ranges[0], text)
 
     def on_deindent(self):
-        """De-indent button on the Menu on the bibentry widged"""
+        """De-indent button on the Menu on the bibentry widget"""
         indentation = 6
         ranges = self.bibentry.tag_ranges(SEL)
         ranges = self.bibentry.index(ranges[0]) + "linestart", self.bibentry.index(ranges[1])
@@ -495,6 +547,7 @@ class Root:
     def on_esc_press(self, event):
         if event.widget in [w.list_box for w in self.paper_list.column_dict.values()]:
             self.disable_buttons()
+            self.current_pdf_path = ""
 
     def count_papers(self):
         print("There are currently {} papers.".format(len(self.biblio.entries.keys())))
@@ -503,6 +556,7 @@ class Root:
         """Loads the data on the listbox"""
         self.paper_list.delete(0, END)
         self.disable_buttons()
+        self.current_pdf_path = ""
 
         for key, entry in self.biblio.entries.items():
             if entry.visible:
@@ -521,9 +575,31 @@ class Root:
             self.inspire_text.set(entry.inspire_id)
             self.comment.set(entry.description)
 
-            #Here I temporarily suppress the callback to put the dropdown menu on Other
+            #Grid the local pdf label if needed
+            if entry.local_pdf != "":
+                self.local_pdf_label.grid(row = 5, column = 0, columnspan = 4, sticky = "news")
+                if len(entry.local_pdf) > 41:
+                    shortened = entry.local_pdf[0:19]+"..."+entry.local_pdf[-19:]
+                else:
+                    shortened = entry.local_pdf
+                if os.path.isfile(self.full_path(entry.local_pdf)):
+                    self.local_pdf_label.config(fg = "#000000")
+                    self.local_pdf_str.set("Local pdf in " + shortened)
+                    self.current_pdf_path = entry.local_pdf
+                    self.pdfmenu.entryconfig(1, state = NORMAL)
+                else:
+                    self.local_pdf_label.config(fg = "#cc0000")
+                    self.local_pdf_str.set("Local pdf in " + shortened + " unavailable!")
+                    self.current_pdf_path = ""
+                    self.pdfmenu.entryconfig(1, state = DISABLED)
+            else:
+                self.local_pdf_label.grid_forget()
+                self.current_pdf_path = ""
+                self.pdfmenu.entryconfig(1, state = DISABLED)
+
+            #Here I temporarily suppress the callback to put the dropdown menu on Multiple groups
             self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
-            self.dropdown_set_val.set(self.category_dict.get(entry.flags,"Other"))
+            self.dropdown_set_val.set(self.category_dict.get(entry.flags,"Multiple groups"))
             self.dropdown_set_val.trace_id = self.dropdown_set_val.trace("w", self.on_change_flags)
             #Then I set the flags
             self.current_category = entry.flags
@@ -552,7 +628,10 @@ class Root:
             self.inspire_text.set("<id>")
             self.comment.set(f"{len(selection)} papers selected.")
 
-            #Here I temporarily suppress the callback to put the dropdown menu on Other
+            self.local_pdf_label.grid_forget()
+            self.current_pdf_path = ""
+
+            #Here I temporarily suppress the callback to put the dropdown menu on All
             self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
             self.dropdown_set_val.set("All")
             self.current_category = None
@@ -588,7 +667,7 @@ class Root:
                 line1 = "overwrites instead of adding"
             else:
                 line1 = "adds instead of overwriting"
-            self.bibentry.insert(1.0,f"Changing the groups from the \"Other\" menu {line1}.\n\n"
+            self.bibentry.insert(1.0,f"Changing the groups from the \"Choose more\" menu {line1}.\n\n"
                                  "The Get Bibtex button automatically updates all selected papers.\n\n"
                                  "The PDF and abstract page buttons open up to a maximum of 10 tabs.")
             
@@ -610,22 +689,28 @@ class Root:
                 print("ArXiv number not available.")
         return f
 
-    def on_arxiv_pdf(self):
-        """Event: load arxiv PDF page"""
+    def on_arxiv_pdf(self, online_override=False):
+        """Event: load arxiv PDF page or the local copy if exists"""
         def f():
-            url = "https://arxiv.org/pdf/{}.pdf"
-            if self.arxiv_link.get() != "n/a":
-                if self.arxiv_link.get() != "Multiple links":
-                    webbrowser.open_new_tab(url.format(self.arxiv_link.get()))
+            if self.current_pdf_path != "" and os.path.isfile(self.full_path(self.current_pdf_path)) and not online_override:
+                if self.full_path(self.current_pdf_path).split(".")[-1] == "pdf":
+                    os.popen(self.pdf_viewer[0] + " \"" + self.full_path(self.current_pdf_path) + "\"&")
                 else:
-                    selection = self.paper_list.curselection()
-                    links = [self.biblio.entries[self.paper_list.get(sel)[0]].arxiv_no for sel in selection]
-                    if len(links) > 10:
-                        links = links[:10]
-                    for l in links:
-                        webbrowser.open_new_tab(url.format(l))
+                    os.popen(self.pdf_viewer[1] + " \"" + self.full_path(self.current_pdf_path) + "\"&")
             else:
-                print("ArXiv number not available.")
+                url = "https://arxiv.org/pdf/{}.pdf"
+                if self.arxiv_link.get() != "n/a":
+                    if self.arxiv_link.get() != "Multiple links":
+                        webbrowser.open_new_tab(url.format(self.arxiv_link.get()))
+                    else:
+                        selection = self.paper_list.curselection()
+                        links = [self.biblio.entries[self.paper_list.get(sel)[0]].arxiv_no for sel in selection]
+                        if len(links) > 10:
+                            links = links[:10]
+                        for l in links:
+                            webbrowser.open_new_tab(url.format(l))
+                else:
+                    print("ArXiv number not available.")
         return f
 
     def on_get_bibtex(self):
@@ -651,50 +736,56 @@ class Root:
                 self.remove_info()
                 self.bibentry.insert(1.0, text)
 
-    def on_change_flags(self, *args):
-        """Event called when a new value from the selection dropdown menu is changed"""
-        if self.dropdown_set_val.get() == "Other":
-            #Insert here the call to a new window for selecting the categories
-            s = Category_Selection(self, self.current_category)
-            self.master.wait_window(s.sel)
-            response = s.response
+    def on_change_flags_other(self, *args):
+        """Event called when a new value from the selection dropdown menu is changed and 'Choose more' has been selected"""
+        #Insert here the call to a new window for selecting the categories
+        s = Category_Selection(self, self.current_category)
+        self.master.wait_window(s.sel)
+        response = s.response
 
-            self.biblio.cat_dict.update(response)
-            self.current_category = ""
-            for a in list(response.keys()):
-                self.current_category += a
+        self.biblio.cat_dict.update(response)
+        self.current_category = ""
+        for a in list(response.keys()):
+            self.current_category += a
 
-            #Here I do part of the things done in create_menu(). I do not recall it to avoid recursion
-            self.category_dict = self.biblio.cat_dict
-            self.category_dict_inv = {v:k for k,v in self.category_dict.items()}
-            self.categories = list(self.category_dict.values()) + ["Other"]
+        #Here I do part of the things done in create_menu(). I do not recall it to avoid recursion
+        self.category_dict = self.biblio.cat_dict
+        self.category_dict_inv = {v:k for k,v in self.category_dict.items()}
+        self.categories = list(self.category_dict.values())
 
-            self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
-            self.dropdown_set_val.set("Other" if len(self.current_category) > 1 else self.category_dict[self.current_category])
-            self.dropdown_set = OptionMenu(self.frame_right, self.dropdown_set_val, *self.categories)
-            self.dropdown_filter = OptionMenu(self.frame_left, self.dropdown_filter_val, command = self.on_filter, *self.categories[:-1])
-            self.dropdown_set_val.trace_id = self.dropdown_set_val.trace("w", self.on_change_flags)
+        self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
+        self.dropdown_set_val.set("Multiple groups" if len(self.current_category) > 1 else self.category_dict[self.current_category])
+        self.dropdown_set = OptionMenu(self.frame_right, self.dropdown_set_val, *self.categories)
+        self.dropdown_set.children["menu"].add_separator()
+        self.dropdown_set.children["menu"].add_command(label = "Choose more", command = self.on_change_flags_other)
+        self.dropdown_filter = OptionMenu(self.frame_left, self.dropdown_filter_val, command = self.on_filter, *self.categories)
+        self.dropdown_filter.children["menu"].add_separator()
+        self.dropdown_filter.children["menu"].add_command(label = "Locally saved PDFs", command = self.on_filter_forpdf)
+        self.dropdown_set_val.trace_id = self.dropdown_set_val.trace("w", self.on_change_flags)
 
-            self.dropdown_set.config(font = self.listfont, width = 11)
-            self.dropdown_filter.config(font = self.listfont)
+        self.dropdown_set.config(font = self.listfont, width = 11)
+        self.dropdown_filter.config(font = self.listfont)
 
-            #Adding the groups to the export menu
-            for cat in self.categories[1:-1]:
-                if not cat in self.export.menus_already_there:
-                    self.export.add_command(label = cat, command = self.export_group(cat))
-                    self.export.menus_already_there.append(cat)
+        #Adding the groups to the export menu
+        for cat in self.categories[1:-1]:
+            if not cat in self.export.menus_already_there:
+                self.export.add_command(label = cat, command = self.export_group(cat))
+                self.export.menus_already_there.append(cat)
 
-            #I have to grid them here
-            self.dropdown_filter.grid(row = 0, column = 2, columnspan = 2, sticky = "news")
-            self.dropdown_set.grid(row = 3, column = 1, columnspan = 2, sticky = "news")
+        #I have to grid them here
+        self.dropdown_filter.grid(row = 0, column = 2, columnspan = 2, sticky = "news")
+        self.dropdown_set.grid(row = 3, column = 1, columnspan = 2, sticky = "news")
             
-        else:
-            self.current_category = self.category_dict_inv[self.dropdown_set_val.get()]
+
+    def on_change_flags(self, *args):
+        """Event called when a new value from the selection dropdown menu is changed and it's not 'Choose more'"""
+        self.current_category = self.category_dict_inv[self.dropdown_set_val.get()]
 
     def on_update(self):
         """Event: the button "Update" has been pressed"""        
         bib = self.bibentry.get(1.0, END)
         com = self.comment.get().replace("|"," ").replace("}"," ").replace("}"," ")
+        locpdf = self.current_pdf_path
         flag = self.current_category
         sel = self.paper_list.curselection()
         ent = self.inspire_text.get()
@@ -721,9 +812,9 @@ class Root:
                     print("Entry updated.")
 
                 if ent in self.biblio.comment_entries.keys():
-                    self.biblio.comment_entries[ent].update({"description": com, "category": flag})
+                    self.biblio.comment_entries[ent].update({"description": com, "category": flag, "local_pdf": locpdf})
                 else:
-                    self.biblio.comment_entries.update({ent : {"description": com, "category": flag}})
+                    self.biblio.comment_entries.update({ent : {"description": com, "category": flag, "local_pdf": locpdf}})
 
                 entry = self.biblio.entries[ent]
                 self.biblio.link_comment_entry(entry)
@@ -750,7 +841,7 @@ class Root:
                     #It depends on the value of the global variable overwrite_flags
                     self.biblio.comment_entries[en].update({"category": merge(iniflag, flag)})
                 else:
-                    self.biblio.comment_entries.update({en : {"description": "Not found", "category": flag}})
+                    self.biblio.comment_entries.update({en : {"description": "Not found", "category": flag, "local_pdf": ""}})
                 entry = self.biblio.entries[en]
                 self.biblio.link_comment_entry(entry)
             if flag == "":
@@ -865,13 +956,29 @@ class Root:
         self.search_button.grid_forget()
 
         flag = self.category_dict_inv[self.dropdown_filter_val.get()]
-        for key, e in self.biblio.entries.items():
+        for e in self.biblio.entries.values():
             if flag in e.flags:
                 e.visible = True
             else:
                 e.visible = False
 
         self.load_data()
+
+    def on_filter_forpdf(self, event = None):
+        """The filter dropdown menu has changed"""
+        self.tooltip.hidetip(self.master)
+        self.search_box.grid_forget()
+        self.search_button.grid_forget()
+
+        for e in self.biblio.entries.values():
+            if e.local_pdf:
+                e.visible = True
+            else:
+                e.visible = False
+
+        self.dropdown_filter_val.set("Locally saved PDFs")
+        self.load_data()
+
 
     def on_sort_date(self):
         """Sorts by date"""
@@ -1010,6 +1117,68 @@ class Root:
                     self.master.title("Bibliography - " + self.current_file.split("/")[-1])       
             except PermissionError:
                 print("Error occurred when saving file.")
+
+    def make_relative(self, path):
+        """Makes a path relative with respect to the current bibtex file"""
+        return os.path.relpath(path, start = self.current_folder())
+
+    def make_absolute(self, path):
+        """Makes a path absolute"""
+        return os.path.realpath(path)
+
+    def full_path(self, path):
+        """Makes a relative path absolute with respect to the current folder"""
+        if self.linked_pdf_relative:
+            return self.current_folder() + "/" + path
+        else:
+            return path
+
+    def on_link_pdf(self):
+        """Links a paper to a locally stored pdf file"""
+        if len(self.paper_list.curselection()) != 1:
+            return None
+        filename = filedialog.askopenfilename(initialdir = self.default_pdf_path, title = "Select file", filetypes = (("PDF files", "*.pdf"),("All files", "*.*")))
+        if not filename:
+            print("I did not do anything.")
+            return None
+        if self.linked_pdf_relative:
+            filename = self.make_relative(filename)
+        else:
+            filename = self.make_absolute(filename)
+        if os.path.isfile(self.full_path(filename)):
+            self.current_pdf_path = filename
+            self.on_update()
+        else:
+            print("The specified file does not exist.")
+
+    def on_unlink_pdf(self):
+        """Unlinks a paper to its locally stored pdf file"""
+        if len(self.paper_list.curselection()) != 1:
+            return None
+        self.current_pdf_path = ""
+        self.on_update()
+
+    def on_save_pdf(self):
+        """Saves a pdf locally and links it"""
+        if len(self.paper_list.curselection()) != 1:
+            return None
+        if self.arxiv_link.get() != "n/a":
+            filename = filedialog.asksaveasfilename(initialdir = self.default_pdf_path, title = "Select file", filetypes = (("PDF files", "*.pdf"),("All files", "*.*")))
+            if not filename:
+                print("I did not do anything.")
+                return None
+            if self.linked_pdf_relative:
+                filename = self.make_relative(filename)
+            else:
+                filename = self.make_absolute(filename)
+            url = "https://arxiv.org/pdf/{}.pdf"
+            self.current_pdf_path = filename
+            print("Downloading...")
+            urllib.request.urlretrieve(url.format(self.arxiv_link.get()), self.full_path(filename))
+            self.on_update()
+            self.on_arxiv_pdf()()
+        else:
+            print("ArXiv number not available. Cannot save on file.")
 
     def on_close(self):
         """Closes the main window"""

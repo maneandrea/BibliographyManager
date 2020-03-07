@@ -1,3 +1,5 @@
 *.out
 .execute_py
+*.pyw
+*.log
 __pycache__/

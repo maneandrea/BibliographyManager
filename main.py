@@ -8,9 +8,12 @@ def main():
     """Main function"""
     dir_path = os.path.dirname(os.path.realpath(__file__))
 
-    overwrite_flags = True
-    ini_def_cat = "hep-th"
-    ini_path = dir_path + "/../../PhD/LaTeX/Bibliography/biblio.bib"
+    overwrite_flags     = True
+    ini_def_cat         = "hep-th"
+    ini_path            = dir_path + "/../../PhD/LaTeX/Bibliography/biblio.bib"
+    linked_pdf_relative = True
+    default_pdf_path    = dir_path + "/../../PhD/Papers/"
+    pdf_viewer          = ("zathura", "evince")
 
     #Reads the config file if it exists
     try:
@@ -30,6 +33,19 @@ def main():
                         overwrite_flags = eval(val.capitalize())
                     elif key == 'default_category':
                         ini_def_cat = val
+                    elif key == 'default_pdf_path':
+                        if os.path.isabs(val):
+                            default_pdf_path = val
+                        else:
+                            pdf_path = dir_path + "/" + val
+                    elif key == 'pdf_viewer':
+                        spl = val.split(",")
+                        if len(spl) == 1:
+                            pdf_viewer = (val[0].strip(" "), val[0].strip(" "))
+                        else:
+                            pdf_viewer = (val[0].strip(" "), val[1].strip(" "))
+                    elif key == 'linked_pdf_relative':
+                        linked_pdf_relative = eval(val.capitalize())
     except:
         pass
 
@@ -38,7 +54,13 @@ def main():
 
     master = Tk()
     biblio = Biblio()
-    root   = Root(master, biblio, default_filename, ini_def_cat, overwrite_flags, *sys.argv)
+    root   = Root(master, biblio, *sys.argv,
+                  default_filename    = default_filename,
+                  ini_def_cat         = ini_def_cat,
+                  overwrite_flags     = overwrite_flags,
+                  linked_pdf_relative = linked_pdf_relative,
+                  default_pdf_path    = default_pdf_path,
+                  pdf_viewer          = pdf_viewer)
 
     master.mainloop()
 

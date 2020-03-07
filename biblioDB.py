@@ -1,6 +1,3 @@
-#!/usr/bin/python3
-
-import os
 import re
 
 """
@@ -108,8 +105,6 @@ class Biblio:
             en = Bibentry(title = found_title,
                         arxiv_no = found_arxiv,
                         inspire_id = found_inspire_id,
-                        description = "",
-                        flags = "",
                         bibentry = r,
                         authors = found_authors,
                         initials = found_initials)
@@ -121,6 +116,7 @@ class Biblio:
         """Links the content of the comment section to the description of the entry"""
         e.description = self.comment_entries.get(e.inspire_id, {"description":"Not found"})["description"]
         e.flags = self.comment_entries.get(e.inspire_id, {"category":""})["category"]
+        e.local_pdf = self.comment_entries.get(e.inspire_id, {"local_pdf":""})["local_pdf"]
 
 
     class ParseError(Exception):
@@ -265,10 +261,10 @@ class Biblio:
         final = {}
         for s in splitted:
             t = s.split("|")
-            if len(t) < 3:
-                t = t + ["" for i in range(3-len(t))]
+            if len(t) < 4:
+                t = t + ["" for i in range(4-len(t))]
             inspire_id = t[0].strip(" \t")
-            d = {"description": t[1].strip(" \t"), "category": t[2].strip(" \t")}
+            d = {"description": t[1].strip(" \t"), "category": t[2].strip(" \t"), "local_pdf": t[3].strip(" \t")}
             final.update({inspire_id:d})
 
         return final
@@ -277,7 +273,7 @@ class Biblio:
         """Writes the whole string enclosed in @COMMENT. To be used for saving on file"""
         string = "%" + str(self.cat_dict) + "\n\n@COMMENT{\n"
         for key, entry in self.comment_entries.items():
-            string += "{} | {} | {}\n".format(key, entry["description"], entry["category"])
+            string += "{} | {} | {} | {}\n".format(key, entry["description"], entry["category"], entry["local_pdf"])
         return string + "}\n\n"
 
     def parse_search(self, string):
@@ -375,14 +371,8 @@ class Biblio:
 
 class Bibentry():
     def __init__(self, **kwargs):
-        self.title       = kwargs["title"]
-        self.arxiv_no    = kwargs["arxiv_no"]
-        self.inspire_id  = kwargs["inspire_id"]
-        self.description = kwargs["description"]
-        self.bibentry    = kwargs["bibentry"]
-        self.authors     = kwargs["authors"]
-        self.initials    = kwargs["initials"]
-        self.flags       = kwargs["flags"]
+        for key, val in kwargs.items():
+            self.__setattr__(key, val)
         self.visible     = True
         self.date        = self.compute_date()
 

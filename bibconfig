@@ -1,5 +1,13 @@
 #Bibliography manager config file
-#Parameters are:
-#default_file (relative or absolute)
-#overwrite_flags (True or False)
-#default_category (hep-th, hep-ph, cond-mat, ...)
+#################################
+#The parameters are:
+#default_file (relative or absolute) : The file that opens at startup.
+#overwrite_flags (True or False) : On multi selection mode, when changing groups, the groups are either added to the selected papers or overwritten.
+#default_category (hep-th, hep-ph, cond-mat, ...) : The arxiv category that is looked up when retrieveing the papers of the day.
+#default_pdf_path (relative or absolute) : The default path for the papers saved locally.
+#linked_pdf_relative (True or False) : The paths of the locally stored pdfs are saved on the database are either relative or absolute.
+#pdf_viewer (executable(s)) : The executable of the default pdf viewer for locally stored pdfs. Also accepts a comma separated tuple for a pdf and a non-pdf version.
+#################################
+#Assign parameter to value by writing a line (without the '#')
+#parameter=value
+#################################
