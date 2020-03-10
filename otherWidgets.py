@@ -6,6 +6,7 @@ import sympy as sp
 from PIL import Image, ImageTk
 from io import BytesIO
 import os
+import threading
 
 
 class MultiListbox(Frame):
@@ -326,43 +327,57 @@ class LatexText(HyperrefText):
         task = self.master.after(self.latex_delay + 10*kwargs["order"], self.render_latex, *args)
         self.schedule.append(task)
 
-    def render_latex(self, text, tag):
+    def render_latex(self, *args):
         """Renders a portion of text in LaTeX as a picture and attaches it to the widged"""
-        #This creates a ByteIO stream and saves there the output of sympy.preview
-        f = BytesIO()
-        if os.name == "nt":
-            rgb = self.master.winfo_rgb(self.master.cget('bg'))
-            rgb = rgb[0]//256, rgb[1]//256, rgb[2]//256
-            the_color = "{%x%x%x}" % rgb
-            the_color = the_color.upper()
-        else:
-            the_color = "{" + self.master.cget('bg')[1:].upper()+"}"
-        #The raisebox is to prevent the image cropping and to center it
-        sp.preview(r"$\displaystyle\phantom{\raisebox{1mm}{|}}\!\!\!\!\!\!$"+text, euler = False,
-        preamble = r"\documentclass{standalone}"
-                   r"\usepackage{pagecolor}"
-                   r"\usepackage{amsmath}"
-                   r"\usepackage{amsfonts}"
-                   r"\definecolor{graybg}{HTML}" + the_color +
-                   r"\pagecolor{graybg}"
-                   r"\begin{document}",
-                   viewer = "BytesIO", output = "ps", outputbuffer=f)
-        f.seek(0)
-        #Open the image as if it were a file. This works only for .ps!
-        img = Image.open(f)
-        #You can also put scale = 3 and remove the next line
-        img.load(scale = 6)
-        img = img.resize((int(img.size[0]/2),int(img.size[1]/2)),Image.BILINEAR)
-        self.pictures.append(ImageTk.PhotoImage(img))   
-        f.close()
+        def funct(text=None, tag=None):
+            if text is None or tag is None:
+                print("Ignoring")
+                return
+            #This creates a ByteIO stream and saves there the output of sympy.preview
+            f = BytesIO()
+            if os.name == "nt":
+                rgb = self.master.winfo_rgb(self.master.cget('bg'))
+                rgb = rgb[0]//256, rgb[1]//256, rgb[2]//256
+                the_color = "{%x%x%x}" % rgb
+                the_color = the_color.upper()
+            else:
+                the_color = "{" + self.master.cget('bg')[1:].upper()+"}"
+            #The raisebox is to prevent the image cropping and to center it
+            sp.preview(r"$\displaystyle\phantom{\raisebox{1mm}{|}}\!\!\!\!\!\!$"+text, euler = False,
+            preamble = r"\documentclass{standalone}"
+                       r"\usepackage{pagecolor}"
+                       r"\usepackage{amsmath}"
+                       r"\usepackage{amsfonts}"
+                       r"\definecolor{graybg}{HTML}" + the_color +
+                       r"\pagecolor{graybg}"
+                       r"\begin{document}",
+                       viewer = "BytesIO", output = "ps", outputbuffer=f)
+            f.seek(0)
+            #Open the image as if it were a file. This works only for .ps!
+            img = Image.open(f)
+            #You can also put scale = 3 and remove the next line
+            img.load(scale = 6)
+            img = img.resize((int(img.size[0]/2),int(img.size[1]/2)),Image.BILINEAR)
+            self.pictures.append(ImageTk.PhotoImage(img))   
+            f.close()
 
-        #Now we can put the image in the text
-        self.config(state = NORMAL)
-        start, end = self.tag_ranges(tag)
-        self.delete(start, end)
-        self.image_create(start, image = self.pictures[-1])
-        self.mark_unset(start)
-        self.mark_unset(end)
+            #Now we can put the image in the text
+            self.config(state = NORMAL)
+            try:
+                start, end = self.tag_ranges(tag)
+            except:
+                return
+            #This checks whether the text has changed in the meantime (this is a threaded task)
+            if self.get(start, end) != text:
+                return
+            self.delete(start, end)
+            self.image_create(start, image = self.pictures[-1])
+            self.mark_unset(start)
+            self.mark_unset(end)
+
+        proc = threading.Thread(target = funct, args = args)
+        proc.start()
+        
 
 class Arxiv_prompt():
     """Shows a messagebox prompting the ArXiv number and listing new papers"""
