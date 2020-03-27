@@ -4,7 +4,7 @@ import re
 self.entries is a dictionary of Bibentry instances. The keys are the inspire id's.
 The values belong the the class Bibentry and have their own attributes.
 self.comment_entries is a dictionary of dictionaries. The keys are the inspire id's.
-The values are dictionaries {"description": <string>, "category": <string>}
+The values are dictionaries {"description": <string>, "category": <string>, "local_pdf": <string>}
 """
 
 class Biblio:
@@ -38,7 +38,7 @@ class Biblio:
             self.parse_raw_entry(r)
 
         #Now we link the comment lines to the bib entries
-        for key, e in self.entries.items():
+        for e in self.entries.values():
             self.link_comment_entry(e)
 
         #Finally we remove the categories that did not show up in the flags

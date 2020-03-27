@@ -3,6 +3,7 @@ from tkinter import messagebox, filedialog, simpledialog, font
 import webbrowser, urllib.request
 import os, sys, time
 from datetime import datetime
+import copy
 
 #My packages
 from otherWidgets import *      #Some functionalities are compatible with TkTreectrl
@@ -138,6 +139,7 @@ class Root:
         self.comment = StringVar()
         self.text_box = Entry(masterr)
         self.text_box.config(font = self.listfont, textvariable = self.comment)
+        self.text_box.bind("<Return>", lambda x: self.on_update())
                 
         #Button for updating the new data
         self.update_paper = Button(masterr)
@@ -320,6 +322,7 @@ class Root:
                 with open(self.path, "a") as f:
                     n = datetime.now()
                     if (n-self.last_write).total_seconds() > 60:
+                        print("An error occurred, see error.log.")
                         f.write(datetime.now().strftime('[%a %d-%m-%Y %H:%M:%S]\n'))
                         self.last_write = datetime.now()
                     f.write(text)
@@ -891,6 +894,9 @@ class Root:
         self.arxiv_link.set("n/a")
         self.dropdown_set_val.set(self.category_dict[""])
 
+        self.local_pdf_label.grid_forget()
+        self.current_pdf_path = ""
+
         self.enable_buttons()
         if self.ask_arxiv_on_add:
             self.on_get_bibtex()
@@ -1073,18 +1079,30 @@ class Root:
     def on_open_file_merge(self):
         """Opens a .bib file with comments compatible with this application. Merges the content of the current biblio"""
         filename = filedialog.askopenfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
-        try:
-            with open(filename, "r", encoding = "utf-8") as file:
-                contents = file.read()
-                self.biblio.parse(contents)
-                self.create_menus()
-                self.load_data()
+        #try:
+        with open(filename, "r", encoding = "utf-8") as file:
+            save_cat_dict = self.biblio.cat_dict.copy()
+            save_comments = copy.deepcopy(self.biblio.comment_entries)
+            
+            contents = file.read()
+            self.biblio.parse(contents)
+            save_cat_dict.update(self.biblio.cat_dict)
+            save_comments.update(self.biblio.comment_entries)
+            self.biblio.cat_dict = save_cat_dict.copy()
+            self.biblio.comment_entries = copy.deepcopy(save_comments)
 
-                self.current_file = filename
-                self.is_modified = True
-                self.master.title("*Bibliography - " + filename.split("/")[-1])
-        except (FileNotFoundError, TypeError) as e:
-            print("Error occurred when loading file.")
+            #Now we link the comment lines to the bib entries
+            for e in self.biblio.entries.values():
+                self.biblio.link_comment_entry(e)
+            
+            self.create_menus()
+            self.load_data()
+
+            self.current_file = filename
+            self.is_modified = True
+            self.master.title("*Bibliography - " + filename.split("/")[-1])
+        #except (FileNotFoundError, TypeError) as e:
+        #    print("Error occurred when loading file.")
                 
 
     def on_save_file(self):
