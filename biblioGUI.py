@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import messagebox, filedialog, simpledialog, font
-import urllib.request
+import webbrowser, urllib.request
 import os, sys, time
 from datetime import datetime
 import copy
@@ -13,7 +13,6 @@ from inspireQuery import *
 icon = "Icons/icon.png"
 
 """
-Add the the functionality that the up and down buttons on a search box let the user browse previous searches
 Add the Undo-Redo functionalities to the bibentry textbox
 """
 
@@ -35,6 +34,9 @@ class Root:
 
         #Asks the Arxiv number right after pressing Add
         self.ask_arxiv_on_add = True
+
+        #Stops the process that updates the bibtex of all the papers at once
+        self.interrupt_process = False
         
         #Window config
         self.master = master
@@ -159,9 +161,14 @@ class Root:
         self.search_box.config(textvariable = self.search_string, font = self.listfont)
         self.search_box.bind("<Return>", self.on_search)
         self.search_box.bind("<Escape>", self.on_exit_search)
+        self.search_box.bind("<Up>", self.on_history_up)
+        self.search_box.bind("<Down>", self.on_history_down)
         self.search_box.bind("<<Paste>>", self.custom_paste)
         self.tooltip = CreateToolTip(master, self.search_box, text = "Prepend a to search by author, t by title, d by description, "
                                      "n by ArXiv number and nothing by all.\nGroup words with quotes. The search ignores cases.")
+        self.search_box.search_history = []
+        self.search_box.history_count = 0
+        self.search_box.temp = ""
 
         #Local pdf
         self.local_pdf_label = Label(masterr)
@@ -247,6 +254,7 @@ class Root:
         master.bind("<Control-d>",lambda x: self.on_sort_date())
         master.bind("<Control-t>",lambda x: self.on_sort_title())
         master.bind("<Control-a>",lambda x: self.on_select_all())
+        master.bind("<Control-c>",lambda x: self.on_keyboard_interrupt())
         master.bind("<Control-e>",lambda x: self.export_selected("w")())
         master.bind("<Control-E>",lambda x: self.export_selected("a")())
         #This is for disabling the buttons if one presses Esc
@@ -336,7 +344,7 @@ class Root:
         sys.stderr = StandardErr('error.log')
         
 
-        #If the default file or given exitst, load it
+        #If the default file or given file exists, load it
         try:
             with open(self.default_filename, "r", encoding = "utf-8") as file:
                 contents = file.read()
@@ -356,6 +364,8 @@ class Root:
             self.create_menus()
             self.on_new_file()
 
+    def on_keyboard_interrupt(self):
+        self.interrupt_process = True
 
     def create_menus(self):
         """Creates the dropdown menus for filtering and selecting the paper category and also the one for exporting"""
@@ -395,6 +405,7 @@ class Root:
         #I have to grid them here
         self.dropdown_filter.grid(row = 0, column = 2, columnspan = 2, sticky = "news")
         self.dropdown_set.grid(row = 3, column = 1, columnspan = 2, sticky = "news")
+
 
     def export_group(self, cat):
         """Exports to a file only the papers that belong to a given group"""
@@ -960,9 +971,27 @@ class Root:
     def on_search(self, event = None):
         """Search for a pattern"""
         self.dropdown_filter_val.set("Search results")
+        self.search_box.search_history.append(self.search_string.get())
         query = self.biblio.parse_search(self.search_string.get())
         self.biblio.filter(query)
         self.load_data()
+
+    def on_history_up(self, event=None):
+        if self.search_box.history_count < len(self.search_box.search_history):
+            self.search_box.history_count += 1
+            if self.search_box.history_count == 1:
+                self.search_box.temp = self.search_string.get()
+            self.search_string.set(self.search_box.search_history[-self.search_box.history_count])
+            self.search_box.icursor(END)
+        
+    def on_history_down(self, event=None):
+        if self.search_box.history_count == 1:
+            self.search_string.set(self.search_box.temp)
+            self.search_box.history_count = 0
+        elif self.search_box.history_count > 1:
+            self.search_box.history_count -= 1
+            self.search_string.set(self.search_box.search_history[-self.search_box.history_count])
+        self.search_box.icursor(END)
 
     def on_exit_search(self, event = None):
         """Closes the search"""
@@ -979,6 +1008,8 @@ class Root:
         """The filter dropdown menu has changed"""
         self.tooltip.hidetip(self.master)
         self.search_box.grid_forget()
+        self.search_string.set("")
+        self.search_box.history_count = 0
         self.search_button.grid_forget()
 
         flag = self.category_dict_inv[self.dropdown_filter_val.get()]
@@ -994,6 +1025,8 @@ class Root:
         """The filter dropdown menu has changed"""
         self.tooltip.hidetip(self.master)
         self.search_box.grid_forget()
+        self.search_string.set("")
+        self.search_box.history_count = 0
         self.search_button.grid_forget()
 
         for e in self.biblio.entries.values():
@@ -1046,22 +1079,27 @@ class Root:
             entries = [self.biblio.entries[self.paper_list.get(a)[0]] for a in sel]
         else:
             entries = self.biblio.entries.values()
+
+        self.interrupt_process = False
         for el in entries:
+            if self.interrupt_process:
+                sys.stdout.flush()
+                print("\nUpdating process interrupted by keyboard")
+                break
             if el.arxiv_no not in ["n/a", ""]:
                 animation += 1
                 try:
-                    text = Query.get(el.arxiv_no, 0)
+                    text = Query.get(el.arxiv_no, self.request_verbosity)
                     if el.bibentry != text:
                         count += 1
                         el.bibentry = text
                 except Query.PaperNotFound:
-                    sys.stdout.write("\rPaper with eprint {} not found.\n".format(el.arxiv_no))
                     sys.stdout.flush()
                 else:
                     #This is just an animation to show that the program is not frozen
                     sys.stdout.write("\rFetching data from Inspire...{}".format(["|","/","-","\\"][animation % 4]))
                     sys.stdout.flush()
-        sys.stdout.write("\rFetching data from Inspire... \n")
+        
         if count == 1:
             print("Updated 1 entry.")
         else:

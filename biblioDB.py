@@ -8,7 +8,7 @@ The values are dictionaries {"description": <string>, "category": <string>, "loc
 """
 
 class Biblio:
-    diacritics = {'\\"a': 'ä', '\\~n': 'ñ'}
+    diacritics = {'\\"a': 'ä', '\\~n': 'ñ', "\\'c": 'ć'}
     
     def __init__(self):
         self.entries = {}

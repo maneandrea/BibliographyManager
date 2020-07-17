@@ -1,9 +1,12 @@
 import urllib.request
 import lxml.html
+import time
 
 APIURL = "http://inspirehep.net/api/"
 ARXIVURL = "https://arxiv.org/list/{}/new"
 ARXIVAPI = "http://export.arxiv.org/api/"
+#Time to wait between requests to the Inspire API after the 50th
+TIME_INTERVAL = 0.501 #seconds
 
 class Query:
     def __init__(self):
@@ -25,10 +28,22 @@ class Query:
             f = urllib.request.urlopen(url)
             pprint("Request successful, reading data...")
             bibtex = f.read().decode('utf-8')
-        except urllib.error.HTTPError:
-            pprint("Paper with eprint {} not found.".format(arxiv_no), 0)
-            raise cls.PaperNotFound
-            return ""
+        except urllib.error.HTTPError as err:
+            if err.reason == 'Too Many Requests':
+                time.sleep(TIME_INTERVAL)
+                pprint("Too many requests, waiting .5 seconds...",0)
+                try:
+                    f = urllib.request.urlopen(url)
+                    pprint("Second request successful, reading data...")
+                    bibtex = f.read().decode('utf-8')
+                except:
+                    pprint("Paper with eprint {} not found even after waiting.".format(arxiv_no), 0)        
+                    raise cls.PaperNotFound
+                    return ""
+            else:
+                pprint("Paper with eprint {} not found. HTTP response: {}".format(arxiv_no, err.reason), 0)        
+                raise cls.PaperNotFound
+                return ""
         else:
             return bibtex
 
@@ -43,7 +58,7 @@ class Query:
         #This looks for the paper id's in the arxiv/new section
         def Xpath(m, n):
             return f'//*[@id="dlpage"]/dl[{m}]/dt[{n}]/span/a[1]'
-        pprint("Now requesting from hep-th/new...")
+        pprint("Now requesting from {}/new...".format(category))
         url = ARXIVURL.format(category)
         f = urllib.request.urlopen(url)
         pprint("Request successful, reading data...")
