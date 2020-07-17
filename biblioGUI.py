@@ -399,7 +399,7 @@ class Root:
         self.export.menus_already_there = []
         #Drop down menu for the export
         self.export.delete(3, self.export.index("end"))
-        for cat in self.categories[1:-1]:
+        for cat in self.categories[1:]:
             self.export.add_command(label = cat, command = self.export_group(cat))
             self.export.menus_already_there.append(cat)
 
@@ -802,7 +802,7 @@ class Root:
         self.dropdown_filter.config(font = self.listfont)
 
         #Adding the groups to the export menu
-        for cat in self.categories[1:-1]:
+        for cat in self.categories[1:]:
             if not cat in self.export.menus_already_there:
                 self.export.add_command(label = cat, command = self.export_group(cat))
                 self.export.menus_already_there.append(cat)
@@ -1135,6 +1135,9 @@ class Root:
 
     def on_new_file(self):
         """Creates a new file"""
+        if self.is_modified:
+            if not messagebox.askokcancel("New filed?","The last modifications will be discarded."):
+                return
         self.biblio.entries = {}
         self.biblio.comment_entries = {}
         self.biblio.cat_dict = {"":"All","r":"To read"}
@@ -1149,7 +1152,13 @@ class Root:
 
     def on_open_file(self):
         """Opens a .bib file with comments compatible with this application. Discards current state of the biblio"""
+        if self.is_modified:
+            if not messagebox.askokcancel("Open?","The last modifications will be discarded."):
+                return
         filename = filedialog.askopenfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
+        if not filename:
+            print("No file selected.")
+            return
         try:
             with open(filename, "r", encoding = "utf-8") as file:
                 self.biblio.entries = {}
@@ -1169,36 +1178,45 @@ class Root:
 
     def on_open_file_merge(self):
         """Opens a .bib file with comments compatible with this application. Merges the content of the current biblio"""
+        if self.is_modified:
+            if not messagebox.askokcancel("Open?","The last modifications will be discarded."):
+                return
         filename = filedialog.askopenfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
-        #try:
-        with open(filename, "r", encoding = "utf-8") as file:
-            save_cat_dict = self.biblio.cat_dict.copy()
-            save_comments = copy.deepcopy(self.biblio.comment_entries)
-            
-            contents = file.read()
-            self.biblio.parse(contents)
-            save_cat_dict.update(self.biblio.cat_dict)
-            save_comments.update(self.biblio.comment_entries)
-            self.biblio.cat_dict = save_cat_dict.copy()
-            self.biblio.comment_entries = copy.deepcopy(save_comments)
+        if not filename:
+            print("No file selected.")
+            return
+        try:
+            with open(filename, "r", encoding = "utf-8") as file:
+                save_cat_dict = self.biblio.cat_dict.copy()
+                save_comments = copy.deepcopy(self.biblio.comment_entries)
+                
+                contents = file.read()
+                self.biblio.parse(contents)
+                save_cat_dict.update(self.biblio.cat_dict)
+                save_comments.update(self.biblio.comment_entries)
+                self.biblio.cat_dict = save_cat_dict.copy()
+                self.biblio.comment_entries = copy.deepcopy(save_comments)
 
-            #Now we link the comment lines to the bib entries
-            for e in self.biblio.entries.values():
-                self.biblio.link_comment_entry(e)
-            
-            self.create_menus()
-            self.load_data()
+                #Now we link the comment lines to the bib entries
+                for e in self.biblio.entries.values():
+                    self.biblio.link_comment_entry(e)
+                
+                self.create_menus()
+                self.load_data()
 
-            self.current_file = filename
-            self.is_modified = True
-            self.master.title("*Bibliography - " + filename.split("/")[-1])
-        #except (FileNotFoundError, TypeError) as e:
-        #    print("Error occurred when loading file.")
+                self.current_file = filename
+                self.is_modified = True
+                self.master.title("*Bibliography - " + filename.split("/")[-1])
+        except (FileNotFoundError, TypeError) as e:
+            print("Error occurred when loading file.")
                 
 
     def on_save_file(self):
         """Saves a .bib file with comments compatible with this application."""
         filename = filedialog.asksaveasfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
+        if not filename:
+            print("No file selected. I did not do anything.")
+            return
         try:
             with open(filename, "w+", encoding = "utf-8") as file:
                 file.write(self.biblio.comment_string())
@@ -1248,7 +1266,7 @@ class Root:
             return None
         filename = filedialog.askopenfilename(initialdir = self.default_pdf_path, title = "Select file", filetypes = (("PDF files", "*.pdf"),("All files", "*.*")))
         if not filename:
-            print("I did not do anything.")
+            print("No file selected. I did not do anything.")
             return None
         if self.linked_pdf_relative:
             filename = self.make_relative(filename)
@@ -1274,7 +1292,7 @@ class Root:
         if self.arxiv_link.get() != "n/a":
             filename = filedialog.asksaveasfilename(initialdir = self.default_pdf_path, title = "Select file", filetypes = (("PDF files", "*.pdf"),("All files", "*.*")))
             if not filename:
-                print("I did not do anything.")
+                print("No file selected. I did not do anything.")
                 return None
             if self.linked_pdf_relative:
                 filename = self.make_relative(filename)
