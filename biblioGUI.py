@@ -47,6 +47,7 @@ class Root:
         self.paned.config(sashrelief = RAISED, sashwidth = 8)
         ini_halfwidth = 600
         ini_height = 600
+        master.geometry(f"{2*ini_halfwidth}x{ini_height}+{master.winfo_screenwidth()//6}+{master.winfo_screenheight()//6}")
 
         #Left and right panels
         self.frame_left = Frame(self.paned)
@@ -855,6 +856,8 @@ class Root:
                 self.paper_list.insert(sel, entry.inspire_id, entry.initials, entry.description)
                 self.paper_list.selection_set(sel)
                 self.list_has_changed((sel,))
+                for c in self.paper_list.column_dict:
+                    self.paper_list.column_dict[c].list_box.see(sel)
 
         elif flag is not None:
             #Modify the flags of a group of papers
@@ -1092,7 +1095,19 @@ class Root:
                     text = Query.get(el.arxiv_no, self.request_verbosity)
                     if el.bibentry != text:
                         count += 1
-                        el.bibentry = text
+                        old_inspire_id = self.biblio.get_id(el.bibentry)
+                        new_inspire_id = self.biblio.get_id(text)
+                        if old_inspire_id == new_inspire_id:
+                            el.bibentry = text
+                        else:
+                            self.biblio.entries[new_inspire_id] = self.biblio.entries[old_inspire_id].copy()
+                            self.biblio.entries[new_inspire_id].bibentry = text
+                            self.biblio.entries[new_inspire_id].inspire_id = new_inspire_id
+                            self.biblio.comment_entries[new_inspire_id] = self.biblio.comment_entries[old_inspire_id].copy()
+                            self.biblio.link_comment_entry(self.biblio.entries[new_inspire_id])
+                            del self.biblio.entries[old_inspire_id]
+                            del self.biblio.comment_entries[old_inspire_id]
+                            
                 except Query.PaperNotFound:
                     sys.stdout.flush()
                 else:
@@ -1111,7 +1126,12 @@ class Root:
             else:
                 self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
             if self.paper_list.curselection() != ():
-               self.list_has_changed(self.paper_list.curselection())
+                sel = self.paper_list.curselection()
+                self.load_data()
+                [self.paper_list.selection_set(ee) for ee in sel]
+                self.list_has_changed(self.paper_list.curselection())
+                for c in self.paper_list.column_dict:
+                    self.paper_list.column_dict[c].list_box.see(sel[-1])
 
     def on_new_file(self):
         """Creates a new file"""

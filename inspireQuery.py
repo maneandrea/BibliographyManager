@@ -40,6 +40,8 @@ class Query:
                     pprint("Paper with eprint {} not found even after waiting.".format(arxiv_no), 0)        
                     raise cls.PaperNotFound
                     return ""
+                else:
+                    return bibtex
             else:
                 pprint("Paper with eprint {} not found. HTTP response: {}".format(arxiv_no, err.reason), 0)        
                 raise cls.PaperNotFound

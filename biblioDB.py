@@ -118,6 +118,16 @@ class Biblio:
         e.flags = self.comment_entries.get(e.inspire_id, {"category":""})["category"]
         e.local_pdf = self.comment_entries.get(e.inspire_id, {"local_pdf":""})["local_pdf"]
 
+    @classmethod
+    def get_id(cls, text):
+        """Gets the inspire id of a text"""
+        id_match = re.search("@([A-z].+?){(.+?),", text)
+        if id_match:
+            return id_match.group(2)
+        else:
+            raise self.ParseError("Comment header not valid\n" + r.split("\n")[0])
+            return ""
+
 
     class ParseError(Exception):
         """An error occurred when parsing the contents of the file."""
@@ -401,9 +411,13 @@ class Bibentry():
         """Writes the entry bibentry. To be used for saving on file"""
         return self.bibentry + "\n\n"
 
-"""
-biblio = Biblio()
-text = "parola1 d parola2 parola3 t \"parola4 and parola5\" parola6 t \"parola7 parola8\" a parola9 a parola10"
+    def copy(self):
+        """Copies the instance"""
+        return Bibentry(title = self.title,
+                        arxiv_no = self.arxiv_no,
+                        inspire_id = self.inspire_id,
+                        bibentry = self.bibentry,
+                        authors = self.authors.copy(),
+                        initials = self.initials)
 
-print(biblio.parse_search(text))
-"""
+
