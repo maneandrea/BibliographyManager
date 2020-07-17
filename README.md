@@ -15,7 +15,7 @@ It can read and save files in a .bib format. Additional information needed for t
 
 Every paper is associated to a unique ID (typically the Inspire ID) and is given a small description. Data can be automatically retrieved from the Inspire database. It is also possible to add papers from the present day directly from within the application.
 
-The application offers a way to categorize papers in up to 26 customizable "groups". Any paper can belong to zero or more groups. Paper can then be searched for keywords or filtered by groups.
+The application offers a way to categorize papers in up to 26 customizable "groups". Any paper can belong to zero or more groups. Papers can then be searched for keywords or filtered by groups.
 
 It is possible to select a subset of papers and create a new .bib file containing only those. This is useful for creating paper specific bibliographies to share with coauthors.
 

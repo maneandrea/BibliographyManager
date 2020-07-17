@@ -347,6 +347,7 @@ class LatexText(HyperrefText):
             preamble = r"\documentclass{standalone}"
                        r"\usepackage{pagecolor}"
                        r"\usepackage{amsmath}"
+                       r"\usepackage{amssymb}"
                        r"\usepackage{amsfonts}"
                        r"\definecolor{graybg}{HTML}" + the_color +
                        r"\pagecolor{graybg}"
@@ -406,6 +407,7 @@ class Arxiv_prompt():
 
         self.responseVar = StringVar()
         choose.text = Entry(choose, textvariable = self.responseVar, font = (None, 12), relief = SUNKEN, width = 32)
+        choose.text.bind("<Return>", lambda x: self.on_close())
 
         #Grid everything
         choose.columnconfigure(0, weight = 1)

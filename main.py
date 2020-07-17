@@ -14,6 +14,7 @@ def main():
     linked_pdf_relative = True
     default_pdf_path    = dir_path + "/../../PhD/Papers/"
     pdf_viewer          = ("zathura", "evince")
+    request_verbosity   = 1
 
     #Reads the config file if it exists
     try:
@@ -60,7 +61,8 @@ def main():
                   overwrite_flags     = overwrite_flags,
                   linked_pdf_relative = linked_pdf_relative,
                   default_pdf_path    = default_pdf_path,
-                  pdf_viewer          = pdf_viewer)
+                  pdf_viewer          = pdf_viewer,
+                  request_verbosity   = request_verbosity)
 
     master.mainloop()
 

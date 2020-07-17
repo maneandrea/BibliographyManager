@@ -138,16 +138,22 @@ class Biblio:
                 commas = [-1]
                 listenquote = True
                 listenbrace = 0
+                escaped = False
                 for i, c in enumerate(args):
-                    if c == '"':
-                        listenquote = not listenquote
-                    elif c == "{":
-                        listenbrace += 1
-                    elif c == "}":
-                        listenbrace -= 1
-                    elif listenquote and listenbrace == 0:
-                        if c == ",":
-                            commas.append(i)
+                    if not escaped:
+                        if c == "\\":
+                            escaped = True
+                        elif c == '"':
+                            listenquote = not listenquote
+                        elif c == "{":
+                            listenbrace += 1
+                        elif c == "}":
+                            listenbrace -= 1
+                        elif listenquote and listenbrace == 0:
+                            if c == ",":
+                                commas.append(i)
+                    else:
+                        escaped = False
                 strings = []
                 commas.append(None)
                 for i, comma in enumerate(commas[:-1]):

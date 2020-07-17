@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter import messagebox, filedialog, simpledialog, font
-import webbrowser, urllib.request
+import urllib.request
 import os, sys, time
 from datetime import datetime
 import copy
@@ -13,11 +13,8 @@ from inspireQuery import *
 icon = "Icons/icon.png"
 
 """
-Add functionality of saving pdfs in the local PC and linking them to the entry in the
-bibliography database. One needs a global flag that specifies whether the paths have
-to be relative or absolute when linked. Furthermore one also needs a global parameter
-with the default folder. How to make this in the GUI I haven't decided yet.
-
+Add the the functionality that the up and down buttons on a search box let the user browse previous searches
+Add the Undo-Redo functionalities to the bibentry textbox
 """
 
 class Root:
@@ -98,6 +95,7 @@ class Root:
         #Text box
         self.bibentry = Text(masterr)
         self.bibentry.config(font = self.bibentryfont)
+        self.bibentry.bind("<<Paste>>", self.custom_paste)
         #This will represent the binding to <1> that removes the info message on the bibentry that appears after doing "Add"
         self.bibentry.binding = None
 
@@ -108,7 +106,7 @@ class Root:
         self.popup_menu.add_command(label="Copy",
                                     command = self.on_copy, state = DISABLED)
         self.popup_menu.add_command(label="Paste",
-                                    command = self.on_paste)
+                                    command = self.custom_paste)
         self.popup_menu.add_separator()
         self.popup_menu.add_command(label="Indent",
                                     command = self.on_indent, state = DISABLED)
@@ -140,6 +138,7 @@ class Root:
         self.text_box = Entry(masterr)
         self.text_box.config(font = self.listfont, textvariable = self.comment)
         self.text_box.bind("<Return>", lambda x: self.on_update())
+        self.text_box.bind("<<Paste>>", self.custom_paste)
                 
         #Button for updating the new data
         self.update_paper = Button(masterr)
@@ -160,6 +159,7 @@ class Root:
         self.search_box.config(textvariable = self.search_string, font = self.listfont)
         self.search_box.bind("<Return>", self.on_search)
         self.search_box.bind("<Escape>", self.on_exit_search)
+        self.search_box.bind("<<Paste>>", self.custom_paste)
         self.tooltip = CreateToolTip(master, self.search_box, text = "Prepend a to search by author, t by title, d by description, "
                                      "n by ArXiv number and nothing by all.\nGroup words with quotes. The search ignores cases.")
 
@@ -183,7 +183,7 @@ class Root:
         #Menu
         self.menu = Menu(master, font = self.listfont)
         self.filemenu = Menu(self.menu, tearoff = 0, font = self.listfont)
-        self.filemenu.add_command(label = "New...                     Ctrl+N", command = self.on_new_file)
+        self.filemenu.add_command(label = "New                         Ctrl+N", command = self.on_new_file)
         self.filemenu.add_command(label = "Open...                    Ctrl+O", command = self.on_open_file)
         self.filemenu.add_command(label = "Open and merge... Ctrl+Shift+O", command = self.on_open_file_merge)
         self.filemenu.add_separator()
@@ -192,7 +192,9 @@ class Root:
         self.filemenu.add_separator()
         self.export = Menu(self.filemenu, tearoff = 0, font = self.listfont)
         self.filemenu.add_cascade(label = "Export...", menu = self.export)
-        self.export.add_command(label = "Selected        Ctrl+E", command = self.export_selected)
+        self.filemenu.add_command(label = "See .bib file", command = self.see_bibfile)
+        self.export.add_command(label = "Selected                  Ctrl+E", command = self.export_selected("w"))
+        self.export.add_command(label = "Selected (append)  Ctrl+Shift+E", command = self.export_selected("a"))
         self.export.add_separator()
         self.filemenu.add_separator()
         self.filemenu.add_command(label = "Exit                          Ctrl+Q", command = self.on_close)
@@ -245,7 +247,8 @@ class Root:
         master.bind("<Control-d>",lambda x: self.on_sort_date())
         master.bind("<Control-t>",lambda x: self.on_sort_title())
         master.bind("<Control-a>",lambda x: self.on_select_all())
-        master.bind("<Control-e>",lambda x: self.export_selected())
+        master.bind("<Control-e>",lambda x: self.export_selected("w")())
+        master.bind("<Control-E>",lambda x: self.export_selected("a")())
         #This is for disabling the buttons if one presses Esc
         master.bind("<Escape>", self.on_esc_press)
             
@@ -384,6 +387,7 @@ class Root:
 
         self.export.menus_already_there = []
         #Drop down menu for the export
+        self.export.delete(3, self.export.index("end"))
         for cat in self.categories[1:-1]:
             self.export.add_command(label = cat, command = self.export_group(cat))
             self.export.menus_already_there.append(cat)
@@ -408,21 +412,31 @@ class Root:
            
         return f
 
-    def export_selected(self):
+    def export_selected(self, mode):
         """Exports to a file only the papers given in a selection"""
-        sel = self.paper_list.curselection()
-        entries = [self.biblio.entries[self.paper_list.get(a)[0]] for a in sel]
-        filename = filedialog.asksaveasfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
-        if len(entries) == 0:
-            print("There were no selected papers.")
-            return False
-        try:
-            with open(filename, "w+", encoding = "utf-8") as file:
-                for entry in entries:
-                    file.write(entry.write())
-                        
-        except (PermissionError,  TypeError, FileNotFoundError) as e:
-            print("Error occurred when saving file.")
+        def f():
+            sel = self.paper_list.curselection()
+            entries = [self.biblio.entries[self.paper_list.get(a)[0]] for a in sel]
+            filename = filedialog.asksaveasfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
+            if len(entries) == 0:
+                print("There were no selected papers.")
+                return False
+            try:
+                with open(filename, f"{mode}+", encoding = "utf-8") as file:
+                    for entry in entries:
+                        file.write(entry.write())
+                            
+            except (PermissionError,  TypeError, FileNotFoundError) as e:
+                print("Error occurred when saving file.")
+
+        return f
+
+    def see_bibfile(self):
+        if os.popen("command -v vim").read().strip() == "":
+            print("You need vim for this command.")
+            return
+        else:
+            os.system(f"gnome-terminal -- bash -c 'view {self.current_file}'")
 
     def right_click_popup(self, event):
             try:
@@ -475,14 +489,6 @@ class Root:
             text = text[0:19]+"..."+text[-19:]
         print(text + " copied to clipboard")
 
-    def on_paste(self):
-        """Paste button on the Menu on the bibentry widget"""
-        try:
-            text = self.master.clipboard_get()
-        except:
-            text = ""
-        self.bibentry.insert(INSERT, text)
-
     def on_indent(self):
         """Indent button on the Menu on the bibentry widget"""
         indentation = 6
@@ -507,6 +513,20 @@ class Root:
         text = "\n".join(newlines)
         self.bibentry.delete(*ranges)
         self.bibentry.insert(ranges[0], text)
+
+    def custom_paste(self, event=None):
+        """Custom paste method that overwrites the selected text"""
+        #Courtesy of https://stackoverflow.com/a/46636970
+        if event is None:
+            widget = self.bibentry
+        else:
+            widget = event.widget
+        try:
+            widget.delete("sel.first", "sel.last")
+        except:
+            pass
+        widget.insert(INSERT, self.master.clipboard_get())
+        return "break"
 
     def adjust_wraplength(self, event = None):
         """Readjust wraplength on resize"""
@@ -722,7 +742,7 @@ class Root:
         if self.arxiv_link.get() in ["n/a", ""]:
             #link = simpledialog.askstring(title="Preprint number",
             #                              prompt="Insert here the preprint number:")
-            d = Arxiv_prompt(self, lambda : Query.list_papers(self.def_cat.get()))
+            d = Arxiv_prompt(self, lambda : Query.list_papers(self.def_cat.get(),self.request_verbosity))
             self.master.wait_window(d.choose)
             link = d.response 
             if link is None or link is "":
@@ -732,7 +752,7 @@ class Root:
             self.update_all()
         else:
             try:
-                text = Query.get(link)
+                text = Query.get(link,self.request_verbosity)
             except Query.PaperNotFound:
                 return None
             else:
@@ -990,6 +1010,11 @@ class Root:
         """Sorts by date"""
         self.biblio.sort_by(lambda x: x.date)
         self.load_data()
+        
+        self.paper_list.scrollbar.set(1.0,1.0)
+        for c in self.paper_list.column_dict:
+                    self.paper_list.column_dict[c].list_box.yview_moveto(1.0)
+                    
         self.is_modified = True
         if self.current_file == None:
             self.master.title("*Bibliography - Untitled")
@@ -1000,6 +1025,11 @@ class Root:
         """Sorts by title"""
         self.biblio.sort_by(lambda x: x.title)
         self.load_data()
+
+        self.paper_list.scrollbar.set(1.0,1.0)
+        for c in self.paper_list.column_dict:
+                    self.paper_list.column_dict[c].list_box.yview_moveto(1.0)
+
         self.is_modified = True
         if self.current_file == None:
             self.master.title("*Bibliography - Untitled")
@@ -1049,6 +1079,9 @@ class Root:
         """Creates a new file"""
         self.biblio.entries = {}
         self.biblio.comment_entries = {}
+        self.biblio.cat_dict = {"":"All","r":"To read"}
+        self.category_dict = {}
+        self.create_menus()
         self.load_data()
         self.current_file = None
 

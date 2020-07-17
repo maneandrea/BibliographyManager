@@ -1,8 +1,7 @@
-import urllib
-from urllib.request import urlopen
+import urllib.request
 import lxml.html
 
-APIURL = "http://inspirehep.net/search?"
+APIURL = "http://inspirehep.net/api/"
 ARXIVURL = "https://arxiv.org/list/{}/new"
 ARXIVAPI = "http://export.arxiv.org/api/"
 
@@ -18,28 +17,20 @@ class Query:
             if verbose > verbosity:
                 print(arg)
 
-        request = "p={}&of={}&jrec={}&".format(
-            "find+eprint+" + arxiv_no.strip(" "),
-            "hx",
-            "001")
-        Xpath = "/html/body/div[2]/div/pre/text()"
+        request = f'arxiv/{arxiv_no}?format=bibtex'
         url = APIURL + request
 
         pprint("Now requesting...")
-        f = urlopen(url)
-        pprint("Request successful, reading data...")
-        data = f.read()
-        pprint("Data read, parsing data...")
-        html = lxml.html.fromstring(data)
-        bibtex = html.xpath(Xpath)
-        pprint("Parsing successful.")
-        
-        if len(bibtex) > 0:
-            return bibtex[0].strip("\n ")
-        else:
+        try:
+            f = urllib.request.urlopen(url)
+            pprint("Request successful, reading data...")
+            bibtex = f.read().decode('utf-8')
+        except urllib.error.HTTPError:
             pprint("Paper with eprint {} not found.".format(arxiv_no), 0)
             raise cls.PaperNotFound
             return ""
+        else:
+            return bibtex
 
     @classmethod
     def list_papers(cls, category, verbose = 1):
@@ -54,7 +45,7 @@ class Query:
             return f'//*[@id="dlpage"]/dl[{m}]/dt[{n}]/span/a[1]'
         pprint("Now requesting from hep-th/new...")
         url = ARXIVURL.format(category)
-        f = urlopen(url)
+        f = urllib.request.urlopen(url)
         pprint("Request successful, reading data...")
         data = f.read()
         pprint("Data read, parsing data...")
@@ -83,7 +74,7 @@ class Query:
         url = ARXIVAPI + "query?id_list="  + ",".join(results) + "&start=0&max_results=100"
 
         pprint("Now requesting titles from the API...")
-        f = urlopen(url)
+        f = urllib.request.urlopen(url)
         pprint("Request successful, reading data...")
         data = f.read()
         pprint("Data read, parsing data...")
