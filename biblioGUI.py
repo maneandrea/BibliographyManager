@@ -366,7 +366,12 @@ class Root:
             self.on_new_file()
 
     def on_keyboard_interrupt(self):
+        """When Ctrl+C has been pressed"""
         self.interrupt_process = True
+
+    def max_characters(self):
+        """Returns the maximal number of characters fitting on the right frame"""
+        return self.frame_right.winfo_width() // 9
 
     def create_menus(self):
         """Creates the dropdown menus for filtering and selecting the paper category and also the one for exporting"""
@@ -485,8 +490,9 @@ class Root:
         self.master.clipboard_clear()
         self.master.clipboard_append(text)
         text = text.replace("\n","")
-        if len(text) > 41:
-            text = text[0:19]+"..."+text[-19:]
+        maxchar = self.max_characters() - 20
+        if len(text) > maxchar:
+            text = text[0:maxchar//2]+"..."+text[-maxchar//2:]
         print(text + " copied to clipboard")
         self.bibentry.delete(*ranges)
 
@@ -497,8 +503,9 @@ class Root:
         self.master.clipboard_clear()
         self.master.clipboard_append(text)
         text = text.replace("\n","")
-        if len(text) > 41:
-            text = text[0:19]+"..."+text[-19:]
+        maxchar = self.max_characters() - 20
+        if len(text) > maxchar:
+            text = text[0:maxchar//2]+"..."+text[-maxchar//2:]
         print(text + " copied to clipboard")
 
     def on_indent(self):
@@ -542,7 +549,7 @@ class Root:
 
     def adjust_wraplength(self, event = None):
         """Readjust wraplength on resize"""
-        w = event.width if event is not None else self.master.winfo_height()
+        w = event.width if event is not None else self.master.winfo_width()
         self.paper_title.adjust_wraplength(w)
         self.paper_authors.adjust_wraplength(w)
 
@@ -555,10 +562,9 @@ class Root:
     def current_folder(self):
         """Simply returns the folder containing self.current_file"""
         if self.current_file == None:
-            return "~"
+            return os.path.expanduser('~')
         else:
-            folder = os.path.dirname(self.current_file)
-            return folder
+            return os.path.dirname(self.current_file)
 
     def disable_buttons(self):
         """The two buttons start as disabled at every load.
@@ -613,8 +619,9 @@ class Root:
             #Grid the local pdf label if needed
             if entry.local_pdf != "":
                 self.local_pdf_label.grid(row = 5, column = 0, columnspan = 4, sticky = "news")
-                if len(entry.local_pdf) > 41:
-                    shortened = entry.local_pdf[0:19]+"..."+entry.local_pdf[-19:]
+                maxchar = self.max_characters() - 13
+                if len(entry.local_pdf) > maxchar:
+                    shortened = entry.local_pdf[0:maxchar//2]+"..."+entry.local_pdf[-maxchar//2:]
                 else:
                     shortened = entry.local_pdf
                 if os.path.isfile(self.full_path(entry.local_pdf)):
