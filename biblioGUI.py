@@ -160,10 +160,6 @@ class Root:
         self.search_string = StringVar()
         self.search_box = Entry(masterl)
         self.search_box.config(textvariable = self.search_string, font = self.listfont)
-        self.search_box.bind("<Return>", self.on_search)
-        self.search_box.bind("<Escape>", self.on_exit_search)
-        self.search_box.bind("<Up>", self.on_history_up)
-        self.search_box.bind("<Down>", self.on_history_down)
         self.search_box.bind("<<Paste>>", self.custom_paste)
         self.tooltip = CreateToolTip(master, self.search_box, text = "Prepend a to search by author, t by title, d by description, "
                                      "n by ArXiv number and nothing by all.\nGroup words with quotes. The search ignores cases.")
@@ -365,6 +361,14 @@ class Root:
             self.create_menus()
             self.on_new_file()
 
+        # Finally we load the new papers from the arxiv and load them in a new file
+        def has_saved(*args):
+            print('New papers obtained and saved in .arxiv_new.txt')
+        def didnt_need_to_save(*args):
+            print('New papers obtained from file .arxiv_new.txt')
+        self.newQuery = Query()
+        self.newQuery.list_papers(self.def_cat.get(), 0, didnt_need_to_save, has_saved)
+
     def on_keyboard_interrupt(self):
         """When Ctrl+C has been pressed"""
         self.interrupt_process = True
@@ -418,6 +422,9 @@ class Root:
         flag = self.category_dict_inv[cat]
         def f():
             filename = filedialog.asksaveasfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
+            if not filename:
+                print("No file selected. I did not do anything.")
+                return
             try:
                 with open(filename, "w+", encoding = "utf-8") as file:
                     for key, entry in self.biblio.entries.items():
@@ -435,6 +442,9 @@ class Root:
             sel = self.paper_list.curselection()
             entries = [self.biblio.entries[self.paper_list.get(a)[0]] for a in sel]
             filename = filedialog.asksaveasfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
+            if not filename:
+                print("No file selected. I did not do anything.")
+                return
             if len(entries) == 0:
                 print("There were no selected papers.")
                 return False
@@ -510,7 +520,7 @@ class Root:
 
     def on_indent(self):
         """Indent button on the Menu on the bibentry widget"""
-        indentation = 6
+        indentation = 4
         ranges = self.bibentry.tag_ranges(SEL)
         ranges = self.bibentry.index(ranges[0]) + "linestart", self.bibentry.index(ranges[1])
         text = self.bibentry.get(*ranges)
@@ -520,7 +530,7 @@ class Root:
 
     def on_deindent(self):
         """De-indent button on the Menu on the bibentry widget"""
-        indentation = 6
+        indentation = 4
         ranges = self.bibentry.tag_ranges(SEL)
         ranges = self.bibentry.index(ranges[0]) + "linestart", self.bibentry.index(ranges[1])
         text = self.bibentry.get(*ranges)
@@ -541,10 +551,14 @@ class Root:
         else:
             widget = event.widget
         try:
+            text = self.master.clipboard_get()
+        except:
+            return "break"
+        try:
             widget.delete("sel.first", "sel.last")
         except:
             pass
-        widget.insert(INSERT, self.master.clipboard_get())
+        widget.insert(INSERT, text)
         return "break"
 
     def adjust_wraplength(self, event = None):
@@ -761,7 +775,7 @@ class Root:
         if self.arxiv_link.get() in ["n/a", ""]:
             #link = simpledialog.askstring(title="Preprint number",
             #                              prompt="Insert here the preprint number:")
-            d = Arxiv_prompt(self, lambda : Query.list_papers(self.def_cat.get(),self.request_verbosity))
+            d = Arxiv_prompt(self, lambda done: self.newQuery.list_papers(self.def_cat.get(),self.request_verbosity, done))
             self.master.wait_window(d.choose)
             link = d.response 
             if link is None or link is "":
@@ -981,7 +995,10 @@ class Root:
     def on_search(self, event = None):
         """Search for a pattern"""
         self.dropdown_filter_val.set("Search results")
-        self.search_box.search_history.append(self.search_string.get())
+        sstring = self.search_string.get()
+        hist = self.search_box.search_history 
+        if not hist or not sstring == hist[-1]:
+            hist.append(sstring)
         query = self.biblio.parse_search(self.search_string.get())
         self.biblio.filter(query)
         self.load_data()
@@ -1014,6 +1031,11 @@ class Root:
         self.search_box.grid(row = 2, column = 0, columnspan = 2, sticky = "news")
         self.search_button.grid(row = 2, column = 2, columnspan = 2, sticky = "news")
 
+        self.search_box.bind("<Return>", self.on_search)
+        self.search_box.bind("<Escape>", self.on_exit_search)
+        self.search_box.bind("<Up>", self.on_history_up)
+        self.search_box.bind("<Down>", self.on_history_down)
+
     def on_filter(self, event = None):
         """The filter dropdown menu has changed"""
         self.tooltip.hidetip(self.master)
@@ -1021,6 +1043,11 @@ class Root:
         self.search_string.set("")
         self.search_box.history_count = 0
         self.search_button.grid_forget()
+
+        self.search_box.unbind("<Return>")
+        self.search_box.unbind("<Escape>")
+        self.search_box.unbind("<Up>")
+        self.search_box.unbind("<Down>")
 
         flag = self.category_dict_inv[self.dropdown_filter_val.get()]
         for e in self.biblio.entries.values():

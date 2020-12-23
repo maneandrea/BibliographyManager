@@ -7,8 +7,13 @@ self.comment_entries is a dictionary of dictionaries. The keys are the inspire i
 The values are dictionaries {"description": <string>, "category": <string>, "local_pdf": <string>}
 """
 
+"""
+To do: make it so that the search ignores accents and diacritics
+"""
+
+
 class Biblio:
-    diacritics = {'\\"a': 'ä', '\\~n': 'ñ', "\\'c": 'ć'}
+    diacritics = {"\\'e":'é','\\"a': 'ä', '\\"o': 'ö', '\\~n': 'ñ', "\\'c": 'ć', '\\u g':'ğ', '\\v c': 'č',"\\'o": 'ò', '\\L':'Ł', '\\_':'_', '\c{c}':'ç'}
     
     def __init__(self):
         self.entries = {}
@@ -83,9 +88,9 @@ class Biblio:
             else:
                 raise self.ParseError("Title not matching in \n" + r)
             #Match ArXiv number
-            arxiv_match = re.search("eprint([ \t]*)=([ \t]*)\"(.+?)\"\s*(,|(}\s*$))", r)
+            arxiv_match = re.search("eprint([ \t]*)=([ \t]*)(\"|{)(.+?)(\"|})\s*(,|(}\s*$))", r)
             if arxiv_match:
-                found_arxiv = arxiv_match.group(3)
+                found_arxiv = arxiv_match.group(4)
             else:
                 found_arxiv = "n/a"
             #Match authors

@@ -1,6 +1,9 @@
 import urllib.request
 import lxml.html
 import time
+import os
+from datetime import date
+import threading
 
 APIURL = "http://inspirehep.net/api/"
 ARXIVURL = "https://arxiv.org/list/{}/new"
@@ -10,7 +13,7 @@ TIME_INTERVAL = 0.501 #seconds
 
 class Query:
     def __init__(self):
-        pass
+        self.contents = None
 
     @classmethod
     def get(cls, arxiv_no, verbose = 1):
@@ -49,8 +52,47 @@ class Query:
         else:
             return bibtex
 
+    def list_papers(self, category, verbose, done_method, done_method_next = None):
+        """Gets the new paper from the file .arxiv_new.txt if exists"""
+        if done_method_next is None:
+            done_method_next = done_method
+        filepath = os.path.join(os.path.dirname(__file__), '.arxiv_new.txt')
+        if os.path.isfile(filepath):
+            with open(filepath,'r') as f:
+                try:
+                    content = eval(f.read())
+                except SyntaxError:
+                    print("The file with the new papers was corrupted, fetching them again.")
+                    self.save_paperlist(category, verbose, self.list_papers, category, verbose, done_method_next)
+                    return
+
+            if content["category"] == category and date.fromisoformat(content["date"]) == date.today():
+                self.contents = content["papers"]
+                done_method(self)
+                return
+
+        print('File with new papers not available, I am loading them now...')
+        self.save_paperlist(category, verbose, self.list_papers, category, verbose, done_method_next)
+
     @classmethod
-    def list_papers(cls, category, verbose = 1):
+    def save_paperlist(cls, category, verbose, function, *args):
+        """Saves a file .arxiv_new.txt with the new papers"""
+        content = {"category": category, "date":date.today().isoformat()}
+
+        def done():
+            results = cls.fetch_papers(category, verbose)
+            content["papers"] = results
+            filepath = os.path.join(os.path.dirname(__file__), '.arxiv_new.txt')
+            with open(filepath, 'w+') as f:
+                f.write(str(content))
+            time.sleep(.1)
+            function(*args)
+
+        proc = threading.Thread(target=done)
+        proc.start()
+
+    @classmethod
+    def fetch_papers(cls, category, verbose = 1):
         """Lists the paper id's and titles in the Arxiv/new section of the day"""
         def pprint(arg, verbosity = 1):
             #Prints only if the argument verbose of get is bigger than the verbosity of the message

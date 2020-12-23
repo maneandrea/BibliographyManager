@@ -10,10 +10,10 @@ def main():
 
     overwrite_flags     = True
     ini_def_cat         = "hep-th"
-    ini_path            = dir_path + "/../../PhD/LaTeX/Bibliography/biblio.bib"
+    ini_path            = dir_path + "/biblio.bib"
     linked_pdf_relative = True
-    default_pdf_path    = dir_path + "/../../PhD/Papers/"
-    pdf_viewer          = ("zathura", "evince")
+    default_pdf_path    = dir_path
+    pdf_viewer          = ("zathura", "zathura")
     request_verbosity   = 1
 
     #Reads the config file if it exists
@@ -38,7 +38,7 @@ def main():
                         if os.path.isabs(val):
                             default_pdf_path = val
                         else:
-                            pdf_path = dir_path + "/" + val
+                            default_pdf_path = dir_path + "/" + val
                     elif key == 'pdf_viewer':
                         spl = val.split(",")
                         if len(spl) == 1:

@@ -2,4 +2,6 @@
 .execute_py
 *.pyw
 *.log
+.arxiv_new.txt
 __pycache__/
+.idea

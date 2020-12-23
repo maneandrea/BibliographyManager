@@ -429,10 +429,17 @@ class Arxiv_prompt():
         wh = self.choose.winfo_height()
         ww = self.choose.winfo_width()
         self.choose.geometry("%dx%d" % (max(800, ww), max(400, wh)))
-        paper_dict =  self.function()
-        self.choose.papers.delete(0, END)
-        for aid, title in paper_dict.items():
-            self.choose.papers.insert(END, aid, title)
+
+        def done(instance):
+            paper_dict = instance.contents
+            print("New papers obtained")
+            self.choose.papers.delete(0, END)
+            for aid, title in paper_dict.items():
+                self.choose.papers.insert(END, aid, title)
+
+        print("Fetching new papers...")
+        self.function(done)
+
 
     def selected(self, selection):
         """A paper has been selected"""
