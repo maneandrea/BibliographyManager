@@ -13,7 +13,7 @@ To do: make it so that the search ignores accents and diacritics
 
 
 class Biblio:
-    diacritics = {"\\'e":'é','\\"a': 'ä', '\\"o': 'ö', '\\~n': 'ñ', "\\'c": 'ć', '\\u g':'ğ', '\\v c': 'č',"\\'o": 'ò', '\\L':'Ł', '\\_':'_', '\c{c}':'ç'}
+    diacritics = {"\\'e":'é','\\"a': 'ä', '\\"o': 'ö', '\\~n': 'ñ', "\\'c": 'ć', '\\u g':'ğ', '\\v c': 'č',"\\'o": 'ò', '\\L':'Ł', '\\_':'_', '\c{c}':'ç', '\\"U':'Ü'}
     
     def __init__(self):
         self.entries = {}
@@ -78,7 +78,7 @@ class Biblio:
     
             found_inspire_id = id_match.group(2)
             #Match title
-            title_match = re.search("title([ \t]*)=([ \t]*)(\"|{)", r)
+            title_match = re.search("title([ \t]*)=([ \t]*)(\"|{)", r, re.I)
             if title_match:
                 found_title = self.parse_element(title_match.group(3), title_match.start(3), r)
                 found_title = found_title.replace("\n"," ").replace("\t","")
@@ -86,22 +86,24 @@ class Biblio:
                 if found_title[0] == "{":
                     found_title = found_title[1:-1]
             else:
-                raise self.ParseError("Title not matching in \n" + r)
+                print("Title not found in\n" + r)
+                found_title = "not found"
             #Match ArXiv number
-            arxiv_match = re.search("eprint([ \t]*)=([ \t]*)(\"|{)(.+?)(\"|})\s*(,|(}\s*$))", r)
+            arxiv_match = re.search("eprint([ \t]*)=([ \t]*)(\"|{)(.+?)(\"|})\s*(,|(}\s*$))", r, re.I)
             if arxiv_match:
                 found_arxiv = arxiv_match.group(4)
             else:
                 found_arxiv = "n/a"
             #Match authors
-            author_match = re.search("author([ \t]*)=([ \t]*)(\"|{)", r)
+            author_match = re.search("author([ \t]*)=([ \t]*)(\"|{)", r, re.I)
             if author_match:
                 author_group = self.parse_element(author_match.group(3), author_match.start(3), r)
                 author_group = author_group.replace("\n"," ").replace("\t","")
                 author_group = remove_many_spaces(author_group)
                 found_authors, found_initials = self.process_authors(author_group)
             else:
-                raise self.ParseError("Authors not matching in\n" + r)
+                print("Authors not found in\n" + r)
+                found_authors, found_initials = ([("not","found")],"")
 
             #Check that the whole string will compile on BibTex
             self.check_all(r)
@@ -130,8 +132,7 @@ class Biblio:
         if id_match:
             return id_match.group(2)
         else:
-            raise self.ParseError("Comment header not valid\n" + r.split("\n")[0])
-            return ""
+            raise cls.ParseError("Comment header not valid\n" + text.split("\n")[0])
 
 
     class ParseError(Exception):
@@ -149,7 +150,7 @@ class Biblio:
         entry_ok = re.match('\s*@(.+?){([^"{},]+?),(.*)(,?\s*)}\s*$', string_nocomment, re.DOTALL)
         if entry_ok:
             args = entry_ok.group(3)
-            if escape_count(args, "{") == escape_count(args, "}") and escape_count(args, '"') % 2 == 0:
+            if escape_count(args, "{") == escape_count(args, "}"):
                 commas = [-1]
                 listenquote = True
                 listenbrace = 0
@@ -158,7 +159,7 @@ class Biblio:
                     if not escaped:
                         if c == "\\":
                             escaped = True
-                        elif c == '"':
+                        elif c == '"' and listenbrace == 0:
                             listenquote = not listenquote
                         elif c == "{":
                             listenbrace += 1
@@ -169,17 +170,19 @@ class Biblio:
                                 commas.append(i)
                     else:
                         escaped = False
+                if listenquote is False:
+                    raise self.ParseError('This entry will not compile on BibTex. Unbalanced "" in\n' + args)
                 strings = []
                 commas.append(None)
                 for i, comma in enumerate(commas[:-1]):
                     strings.append(args[comma+1:commas[i+1]])
                 for s in strings:
-                    mat = re.match('(\s*(\w+)\s*=\s*((".*")|({.*}))\s*)|\s*$', s, re.DOTALL)
+                    mat = re.match('(\s*([\w\-.]+)\s*=\s*((".*")|({.*})|(\w+))\s*)|\s*$', s, re.DOTALL)
                     if mat is None:
                         raise self.ParseError("This line in the entry will not compile on BibTex\n" + s)
                 return True
             else:
-                raise self.ParseError('This entry will not compile on BibTex. Unbalanced {} or "" in\n' + args)
+                raise self.ParseError('This entry will not compile on BibTex. Unbalanced {} in\n' + args)
         else:
             raise self.ParseError("This entry will not compile on BibTex\n" + string)
 

@@ -15,6 +15,7 @@ def main():
     default_pdf_path    = dir_path
     pdf_viewer          = ("zathura", "zathura")
     request_verbosity   = 1
+    def_term		= 'gnome-terminal --'
 
     #Reads the config file if it exists
     try:
@@ -47,6 +48,8 @@ def main():
                             pdf_viewer = (val[0].strip(" "), val[1].strip(" "))
                     elif key == 'linked_pdf_relative':
                         linked_pdf_relative = eval(val.capitalize())
+                    elif key == 'default_terminal':
+                    	def_term = val.strip("'\"")
     except:
         pass
 
@@ -62,7 +65,8 @@ def main():
                   linked_pdf_relative = linked_pdf_relative,
                   default_pdf_path    = default_pdf_path,
                   pdf_viewer          = pdf_viewer,
-                  request_verbosity   = request_verbosity)
+                  request_verbosity   = request_verbosity,
+                  default_terminal    = def_term)
 
     master.mainloop()
 

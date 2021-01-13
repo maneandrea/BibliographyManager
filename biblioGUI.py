@@ -193,6 +193,7 @@ class Root:
         self.filemenu.add_separator()
         self.filemenu.add_command(label = "Save...                     Ctrl+S", command = self.on_save_this_file)
         self.filemenu.add_command(label = "Save As...                Ctrl+Shift+S", command = self.on_save_file)
+        self.filemenu.add_command(label="Save (no comments)                ", command=self.on_save_nocomments)
         self.filemenu.add_separator()
         self.export = Menu(self.filemenu, tearoff = 0, font = self.listfont)
         self.filemenu.add_cascade(label = "Export...", menu = self.export)
@@ -459,11 +460,11 @@ class Root:
         return f
 
     def see_bibfile(self):
-        if os.popen("command -v vim").read().strip() == "":
-            print("You need vim for this command.")
-            return
-        else:
-            os.system(f"gnome-terminal -- bash -c 'view {self.current_file}'")
+    	if os.name == 'nt':
+    		#Not tested yet
+    		os.system(f"cmd /C 'more {self.current_file}'")
+    	else:
+	        os.system(f"{self.default_terminal} bash -c 'less {self.current_file}'")
 
     def right_click_popup(self, event):
             try:
@@ -1275,9 +1276,30 @@ class Root:
                         file.write(entry.write())
 
                     self.is_modified = False
-                    self.master.title("Bibliography - " + self.current_file.split("/")[-1])       
+                    self.master.title("Bibliography - " + self.current_file.split("/")[-1])
             except PermissionError:
                 print("Error occurred when saving file.")
+
+    def on_save_nocomments(self):
+        """Saves a .bib file without the comments. Saves on the current file"""
+        if self.current_file == None:
+            filename = filedialog.asksaveasfilename(initialdir = self.current_folder(), title = "Select file", filetypes = (("BibTeX files", "*.bib"),("All files", "*.*")))
+        else:
+            filename = self.current_file
+        sel = self.paper_list.curselection()
+        entries = self.biblio.entries.values()
+        if not filename:
+            print("No file selected. I did not do anything.")
+            return
+        try:
+            with open(filename,"w+", encoding="utf-8") as file:
+                for entry in entries:
+                    file.write(entry.write())
+            print("The file was exported in place.")
+
+        except (PermissionError, TypeError, FileNotFoundError) as e:
+            print("Error occurred when exporting file in place.")
+
 
     def make_relative(self, path):
         """Makes a path relative with respect to the current bibtex file"""

@@ -7,9 +7,11 @@
 #default_pdf_path (relative or absolute) : The default path for the papers saved locally.
 #linked_pdf_relative (True or False) : The paths of the locally stored pdfs are saved on the database as either relative or absolute.
 #pdf_viewer (executable(s)) : The executable of the default pdf viewer for locally stored pdfs. Also accepts a comma separated tuple for a pdf and a non-pdf version.
+#default_terminal : command for launching the preferred terminal emulator
 #################################
 #Assign parameter to value by writing a line (without the '#')
 #parameter=value
 default_file=../../Uppsala/Latex/Bibliography/biblio.bib
 default_pdf_path=../../Uppsala/Papers/
+default_terminal='gnome-terminal --'
 #################################
