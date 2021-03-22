@@ -10,10 +10,11 @@ from otherWidgets import *  # Some functionalities are compatible with TkTreectr
 from biblioDB import *
 from inspireQuery import *
 
-icon = "Icons/icon.png"
+icon = os.path.join(os.path.dirname(__file__),"Icons","icon.png")
 
 """
 Add the Undo-Redo functionalities to the bibentry textbox
+Fix the clunky LaTeX rendering in the titles
 """
 
 
@@ -48,8 +49,8 @@ class Root:
         self.paned.config(sashrelief=RAISED, sashwidth=8)
         ini_halfwidth = 600
         ini_height = 600
-        master.geometry(
-            f"{2 * ini_halfwidth}x{ini_height}+{master.winfo_screenwidth() // 6}+{master.winfo_screenheight() // 6}")
+        #master.geometry(
+        #    f"{2 * ini_halfwidth}x{ini_height}+{master.winfo_screenwidth() // 6}+{master.winfo_screenheight() // 6}")
 
         # Left and right panels
         self.frame_left = Frame(self.paned)
@@ -367,7 +368,7 @@ class Root:
                     self.paper_list.column_dict[c].list_box.yview_moveto(1.0)
         except FileNotFoundError:
             if len(self.sysargv) > 1:
-                print("The given file is not available.")
+                print(f"The file {self.sysargv[1]} is not available.")
             else:
                 print("The default file is not available.")
             self.create_menus()
@@ -490,7 +491,7 @@ class Root:
     def see_bibfile(self):
         if os.name == 'nt':
             # Not tested yet
-            os.system(f"cmd /C 'more {self.current_file}'")
+            os.system(f"cmd /C \"more {self.current_file}\"")
         else:
             os.system(f"{self.default_terminal} bash -c 'less {self.current_file}'")
 

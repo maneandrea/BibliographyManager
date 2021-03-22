@@ -54,7 +54,7 @@ def main():
         pass
 
     #Takes the file from the first argument, otherwise loads a default one
-    default_filename = sys.argv[1] if len(sys.argv) > 1 else ini_path
+    default_filename = ' '.join(sys.argv[1:]) if len(sys.argv) > 1 else ini_path
 
     master = Tk()
     biblio = Biblio()

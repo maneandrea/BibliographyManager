@@ -5,6 +5,9 @@ import os
 from datetime import date
 import threading
 
+def __init__(self):
+    return
+
 APIURL = "http://inspirehep.net/api/"
 ARXIVURL = "https://arxiv.org/list/{}/new"
 ARXIVAPI = "http://export.arxiv.org/api/"
