@@ -13,5 +13,5 @@
 #parameter=value
 default_file=../../Uppsala/Latex/Bibliography/biblio.bib
 default_pdf_path=../../Uppsala/Papers/
-default_terminal='gnome-terminal --'
+default_terminal='konsole -e '
 #################################
