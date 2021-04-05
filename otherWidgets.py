@@ -265,7 +265,10 @@ class HyperrefText(Text):
         self.text_add(text)
         cursor_aft = self.index('end-1c')
         self.tag_add(text, cursor_bef, cursor_aft)
-        self.tag_config(text, foreground = "blue")
+        if int(self.cget('bg').replace('#','0x'),16) < 8388607:
+            self.tag_config(text, foreground="maroon1")
+        else:
+            self.tag_config(text, foreground = "blue")
         self.tag_bind(text, "<1>", self.callback(url))
         self.tag_bind(text, "<Enter>", self.underline(text))
         self.tag_bind(text, "<Leave>", self.deunderline(text))
@@ -342,14 +345,19 @@ class LatexText(HyperrefText):
                 the_color = the_color.upper()
             else:
                 the_color = "{" + self.master.cget('bg')[1:].upper()+"}"
+            if int('0x'+the_color.strip('{}'), 16) < 8388607:
+                fg_color = '{ffffff}'
+            else:
+                fg_color = '{000000}'
             #The raisebox is to prevent the image cropping and to center it
-            sp.preview(r"$\displaystyle\phantom{\raisebox{1mm}{|}}\!\!\!\!\!\!$"+text, euler = False,
+            sp.preview(r"$\displaystyle\phantom{\raisebox{1mm}{|}}\!\!\!\!\!\!$\textcolor{fg}{"+text+"}", euler = False,
             preamble = r"\documentclass{standalone}"
                        r"\usepackage{pagecolor}"
                        r"\usepackage{amsmath}"
                        r"\usepackage{amssymb}"
                        r"\usepackage{amsfonts}"
                        r"\definecolor{graybg}{HTML}" + the_color +
+                       r"\definecolor{fg}{HTML}" + fg_color +
                        r"\pagecolor{graybg}"
                        r"\begin{document}",
                        viewer = "BytesIO", output = "ps", outputbuffer=f)

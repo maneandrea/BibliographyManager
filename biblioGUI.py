@@ -126,7 +126,7 @@ class Root:
         self.inspire_text = StringVar()
         self.inspire_id = Entry(masterr)
         self.inspire_id.config(state="readonly", textvariable=self.inspire_text,
-                               font=self.listfont, relief=FLAT, bg=master.cget("bg"))
+                               font=self.listfont, relief=FLAT, readonlybackground=masterr.cget('bg'))
         self.inspire_id.bind("<Double-Button-1>", self.copy_to_clipboard)
 
         # Buttons with links to the ArXiv
