@@ -166,7 +166,8 @@ class Root:
         self.search_button.config(text="Search", font=self.listfont, command=self.on_search)
         self.search_string = StringVar()
         self.search_box = Entry(masterl)
-        self.search_box.config(textvariable=self.search_string, font=self.listfont)
+        self.search_box.config(textvariable=self.search_string, font=self.listfont,
+                               bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         self.search_box.bind("<<Paste>>", self.custom_paste)
         self.tooltip = CreateToolTip(master, self.search_box,
                                      text="Prepend a to search by author, t by title, d by description, "
@@ -1081,7 +1082,8 @@ class Root:
     def on_menu_search(self, event=None):
         """Shows the search widgets and focuses on the search textbox"""
         self.search_box.focus_set()
-        self.search_box.grid(row=2, column=0, columnspan=2, sticky="news")
+        self.search_box.grid(row=2, column=0, columnspan=2, sticky="news",
+                             bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         self.search_button.grid(row=2, column=2, columnspan=2, sticky="news")
 
         self.search_box.bind("<Return>", self.on_search)

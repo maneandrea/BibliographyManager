@@ -280,7 +280,7 @@ class HyperrefText(Text):
 
 class LatexText(HyperrefText):
     """Class inherited from HyperrefText that can parse and render LaTeX"""
-    latex_delay = 200
+    latex_delay = 100
     
     def __init__(self, *args, **kwargs):
         self.schedule = []
@@ -326,7 +326,7 @@ class LatexText(HyperrefText):
 
     def schedule_latex(self, string, tag, tot):
         """Schedules a latex rendering and adds the task to the list schedule"""
-        #I put a small delay to avoid race conditions when accessing self.pictures
+        #I put a small delay but probably this is not needed anymore with this new method
         task = self.master.after(self.latex_delay, self.render_latex, string, tag, tot)
         self.schedule.append(task)
 
@@ -421,12 +421,14 @@ class Arxiv_prompt():
         
         choose.papers = MultiListbox(choose)
         choose.papers.config(columns = ("Inspire ID", "Title"), font = self.parent.listfont,
-                             selectcmd = self.selected, columnfont = (None, 11))
+                             selectcmd = self.selected, columnfont = (None, 11),
+                             bg='white' if int(self.parent.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         choose.papers.config(selectmode = BROWSE)
         choose.papers.set_widths(110)
 
         self.responseVar = StringVar()
-        choose.text = Entry(choose, textvariable = self.responseVar, font = (None, 12), relief = SUNKEN, width = 32)
+        choose.text = Entry(choose, textvariable = self.responseVar, font = (None, 12), relief = SUNKEN, width = 32,
+                            bg='white' if int(self.parent.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         choose.text.bind("<Return>", lambda x: self.on_close())
 
         #Grid everything
@@ -509,7 +511,8 @@ class Category_Selection():
                 the_check = Checkbutton(sel, text = l, variable = v, font = (DEJAVUSANSMONO, 13))
                 the_check.var = v
                 the_string = StringVar()
-                the_entry = Entry(sel, textvariable = the_string, font = (None, 12), relief = SUNKEN, width = 20)
+                the_entry = Entry(sel, textvariable = the_string, font = (None, 12), relief = SUNKEN, width = 20,
+                                  bg='white' if int(self.parent.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
                 the_string.trace("w", self.restore_color(the_entry))
                 the_entry.string = the_string
                 if l in parent.biblio.cat_dict.keys():
