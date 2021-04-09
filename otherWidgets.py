@@ -95,7 +95,7 @@ class MultiListbox(Frame):
 
         new_frame.list_box.current_selection = ()
 
-        #Grid all        
+        #Grid all
         new_frame.columnconfigure(0, weight = 1)
         new_frame.rowconfigure(0, weight = 0)
         new_frame.rowconfigure(1, weight = 1)
@@ -284,7 +284,7 @@ class LatexText(HyperrefText):
     
     def __init__(self, *args, **kwargs):
         self.schedule = []
-        self.pictures = []
+        self.pictures = {}
         HyperrefText.__init__(self, *args, **kwargs)
     
     def latex_set(self, text):
@@ -293,7 +293,7 @@ class LatexText(HyperrefText):
         for task in self.schedule:
             self.master.after_cancel(task)
         self.schedule = []
-        self.pictures = []
+        self.pictures = {}
 
         self.config(state = NORMAL)
         self.delete(1.0, END)
@@ -312,7 +312,7 @@ class LatexText(HyperrefText):
         #Adds the portions of text subdivided before
         for i, t in enumerate(itertools.zip_longest(texts, latexs, fillvalue = "")):
             self.insert(END, t[0])
-            start = self.index("end-1c")
+            # start = self.index("end-1c")
             href = re.match(r"\\href{(.*)}{(.*)}", t[1])
             if href:
                 self.link_add(href.group(2), href.group(1))
@@ -320,19 +320,19 @@ class LatexText(HyperrefText):
             elif len(t[1]) > 0:
                 self.insert(END, t[1], str(i))
                 self.tag_configure(str(i), foreground = "#6000bf")
-                self.schedule_latex(t[1], str(i), order = i)
+                self.schedule_latex(t[1], tag=str(i), tot=len(latexs))
 
         self.config(state = DISABLED)
 
-    def schedule_latex(self, *args, **kwargs):
+    def schedule_latex(self, string, tag, tot):
         """Schedules a latex rendering and adds the task to the list schedule"""
         #I put a small delay to avoid race conditions when accessing self.pictures
-        task = self.master.after(self.latex_delay + 10*kwargs["order"], self.render_latex, *args)
+        task = self.master.after(self.latex_delay, self.render_latex, string, tag, tot)
         self.schedule.append(task)
 
     def render_latex(self, *args):
         """Renders a portion of text in LaTeX as a picture and attaches it to the widged"""
-        def funct(text=None, tag=None):
+        def funct(text=None, tag=None, tot=None):
             if text is None or tag is None:
                 print("Ignoring")
                 return
@@ -367,25 +367,37 @@ class LatexText(HyperrefText):
             #You can also put scale = 3 and remove the next line
             img.load(scale = 6)
             img = img.resize((int(img.size[0]/2),int(img.size[1]/2)),Image.BILINEAR)
-            self.pictures.append(ImageTk.PhotoImage(img))   
+            self.pictures.update({tag: (ImageTk.PhotoImage(img), text)})
             f.close()
 
-            #Now we can put the image in the text
-            self.config(state = NORMAL)
+            #Call the function if everything is done
+            if set(self.pictures.keys()) == set([str(a) for a in range(tot)]):
+                self.put_pictures()
+
+
+        proc = threading.Thread(target = funct, args = args)
+        proc.start()
+
+    def put_pictures(self):
+        """Puts the images in the text box"""
+
+        #Now we can put the image in the text
+        self.config(state = NORMAL)
+        for tag in self.pictures:
             try:
                 start, end = self.tag_ranges(tag)
             except:
                 return
-            #This checks whether the text has changed in the meantime (this is a threaded task)
+            #This checks whether the text has changed in the meantime
+            img = self.pictures[tag][0]
+            text = self.pictures[tag][1]
             if self.get(start, end) != text:
                 return
             self.delete(start, end)
-            self.image_create(start, image = self.pictures[-1])
+            self.image_create(start, image = img)
             self.mark_unset(start)
             self.mark_unset(end)
 
-        proc = threading.Thread(target = funct, args = args)
-        proc.start()
         
 
 class Arxiv_prompt():
