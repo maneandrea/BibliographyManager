@@ -195,7 +195,7 @@ class ToolTip(object):
         exp_height = (text.count("\n") + 3)* 17
         tw.wm_geometry("+%d+%d" % (x, y - exp_height))
         label = Label(tw, text=self.text, justify=LEFT,
-                      background="#ffffe0", relief=SOLID, borderwidth=1,
+                      fg='#000000', bg="#ffffe0", relief=SOLID, borderwidth=1,
                       font=("DejaVu Sans", "10", "normal"))
         label.pack(ipadx=1)
 

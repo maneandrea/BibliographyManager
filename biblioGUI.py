@@ -75,7 +75,8 @@ class Root:
         # MultiListbox config
         self.paper_list = MultiListbox(masterl)
         self.paper_list.config(columns=("Inspire ID", "Authors", "Description"), font=self.listfont,
-                               selectcmd=self.list_has_changed, columnfont=self.columnfont)
+                               selectcmd=self.list_has_changed, columnfont=self.columnfont,
+                               bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         # This fixes the initial widths of the columns
         self.paper_list.set_widths(100, 80)
         # This binds Sort by Date to the first column and Sort by Title to the Last
@@ -101,7 +102,8 @@ class Root:
 
         # Text box
         self.bibentry = Text(masterr)
-        self.bibentry.config(font=self.bibentryfont)
+        self.bibentry.config(font=self.bibentryfont,
+                             bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         self.bibentry.bind("<<Paste>>", self.custom_paste)
         # This will represent the binding to <1> that removes the info message on the bibentry that appears after doing "Add"
         self.bibentry.binding = None
@@ -143,7 +145,8 @@ class Root:
         # Text box to edit the paper comments
         self.comment = StringVar()
         self.text_box = Entry(masterr)
-        self.text_box.config(font=self.listfont, textvariable=self.comment)
+        self.text_box.config(font=self.listfont, textvariable=self.comment,
+                             bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         self.text_box.bind("<Return>", lambda x: self.on_update())
         self.text_box.bind("<<Paste>>", self.custom_paste)
 
@@ -975,7 +978,7 @@ class Root:
         """If the info message in grey is showing in the text box removes that and reverts the configuration, otherwise just erases the textbox."""
         if self.bibentry.binding is not None:
             self.bibentry.unbind("<1>", self.bibentry.binding)
-            self.bibentry.config(fg="black")
+            self.bibentry.config(fg='#ffffff' if int(self.frame_right.cget('bg').replace('#','0x'),16) < 8388607 else '#000000')
         self.bibentry.delete(1.0, END)
         self.bibentry.binding = None
 
@@ -989,7 +992,7 @@ class Root:
                              "\n\n@article{Author:2020abc,\n"
                              "         ...\n"
                              "}")
-        self.bibentry.config(fg="gray35")
+        self.bibentry.config(fg='gray60' if int(self.frame_right.cget('bg').replace('#','0x'),16) < 8388607 else 'gray35')
         self.bibentry.binding = self.bibentry.bind("<1>", self.remove_info)
 
         self.comment.set("Insert description here.")
