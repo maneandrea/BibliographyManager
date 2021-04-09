@@ -1082,8 +1082,7 @@ class Root:
     def on_menu_search(self, event=None):
         """Shows the search widgets and focuses on the search textbox"""
         self.search_box.focus_set()
-        self.search_box.grid(row=2, column=0, columnspan=2, sticky="news",
-                             bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
+        self.search_box.grid(row=2, column=0, columnspan=2, sticky="news")
         self.search_button.grid(row=2, column=2, columnspan=2, sticky="news")
 
         self.search_box.bind("<Return>", self.on_search)
