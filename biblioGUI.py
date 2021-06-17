@@ -797,9 +797,9 @@ class Root:
             if self.current_pdf_path != "" and os.path.isfile(
                     self.full_path(self.current_pdf_path)) and not online_override:
                 if self.full_path(self.current_pdf_path).split(".")[-1] == "pdf":
-                    subprocess.run([self.pdf_viewer[0], self.full_path(self.current_pdf_path)])
+                    subprocess.Popen([self.pdf_viewer[0], self.full_path(self.current_pdf_path)])
                 else:
-                    subprocess.run([self.pdf_viewer[1], self.full_path(self.current_pdf_path)])
+                    subprocess.Popen([self.pdf_viewer[1], self.full_path(self.current_pdf_path)])
             else:
                 url = "https://arxiv.org/pdf/{}.pdf"
                 if self.arxiv_link.get() != "n/a":
