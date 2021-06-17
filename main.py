@@ -43,13 +43,13 @@ def main():
                     elif key == 'pdf_viewer':
                         spl = val.split(",")
                         if len(spl) == 1:
-                            pdf_viewer = (val[0].strip(" "), val[0].strip(" "))
+                            pdf_viewer = (spl[0].strip(" "), spl[0].strip(" "))
                         else:
-                            pdf_viewer = (val[0].strip(" "), val[1].strip(" "))
+                            pdf_viewer = (spl[0].strip(" "), spl[1].strip(" "))
                     elif key == 'linked_pdf_relative':
                         linked_pdf_relative = eval(val.capitalize())
                     elif key == 'default_terminal':
-                    	def_term = val.strip("'\"")
+                        def_term = val.strip("'\"")
     except:
         pass
 
