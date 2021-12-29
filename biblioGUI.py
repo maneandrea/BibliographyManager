@@ -929,7 +929,7 @@ class Root:
         # Here I do part of the things done in create_menu(). I do not recall it to avoid recursion
         self.category_dict = self.biblio.cat_dict
         self.category_dict_inv = {v: k for k, v in self.category_dict.items()}
-        self.categories = list(self.category_dict.values())
+        self.categories = ["All"] + list(self.category_dict.values())
 
         self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
         if len(self.current_category) == 0:
@@ -962,7 +962,7 @@ class Root:
 
     def on_change_flags(self, *args):
         """Event called when a new value from the selection dropdown menu is changed and it's not 'Choose more'"""
-        self.current_category = self.category_dict_inv[self.dropdown_set_val.get()]
+        self.current_category = [self.category_dict_inv[self.dropdown_set_val.get()]]
 
     def on_update(self):
         """Event: the button "Update" has been pressed"""
@@ -1012,14 +1012,14 @@ class Root:
             # Modify the flags of a group of papers
             entlist = [self.paper_list.get(s)[0] for s in sel]
 
-            def merge(str1, str2):
+            def merge(flags1, flags2):
                 if self.overwrite_flags:
-                    ret = str2
+                    ret = flags2
                 else:
-                    ret = str1
-                    for c in str2:
-                        if c not in ret:
-                            ret += c
+                    ret = flags1
+                    for c in flags2:
+                        if c not in flags1:
+                            ret.append(c)
                 return ret
 
             for en in entlist:
@@ -1033,7 +1033,7 @@ class Root:
                         {en: {"description": "Not found", "category": flag, "local_pdf": ""}})
                 entry = self.biblio.entries[en]
                 self.biblio.link_comment_entry(entry)
-            if flag == "":
+            if flag == []:
                 if self.overwrite_flags:
                     print(f"The group(s) have been cleared from {len(sel)} entries.")
                 else:
