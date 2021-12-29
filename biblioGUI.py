@@ -358,8 +358,8 @@ class Root:
             def flush(self):
                 pass
 
-        sys.stdout = StandardOut(self.status, self.master, self.status_bar)
-        sys.stderr = StandardErr('error.log')
+        # sys.stdout = StandardOut(self.status, self.master, self.status_bar)
+        # sys.stderr = StandardErr('error.log')
 
         # If the default file or given file exists, load it
         try:
@@ -409,7 +409,7 @@ class Root:
         self.category_dict_inv = {v: k for k, v in self.category_dict.items()}
 
         # Drop down menu for editing the paper category
-        self.categories = list(self.category_dict.values())
+        self.categories = ["All"] + list(self.category_dict.values())
         self.dropdown_set_val = StringVar()
         self.dropdown_set_val.set(self.categories[0])
         self.current_category = ""

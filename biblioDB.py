@@ -24,9 +24,13 @@ class Biblio:
         """Parses an input from a .bib file."""
         self.raw_entries = []
 
-        found_cat_dict = re.search("^%{(.*:.*)*}", contents, flags = re.MULTILINE)
+        found_cat_dict = re.search(r"""^%\{\s*(\d+\s*:.+)*\}""", contents, flags = re.MULTILINE)
         if found_cat_dict:
-            self.cat_dict = eval(found_cat_dict.group(0)[1:])
+            try:
+                self.cat_dict = eval(found_cat_dict.group(0)[1:])
+            except (SyntaxError, ValueError, NameError) as e:
+                print("Syntax error in the category dictionary: " + str(e))
+                self.cat_dict = {1: "To read"}
         else:
             self.cat_dict = {1: "To read"}
 
