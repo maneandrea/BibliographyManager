@@ -4,7 +4,7 @@ import re
 self.entries is a dictionary of Bibentry instances. The keys are the inspire id's.
 The values belong the the class Bibentry and have their own attributes.
 self.comment_entries is a dictionary of dictionaries. The keys are the inspire id's.
-The values are dictionaries {"description": <string>, "category": <string>, "local_pdf": <string>}
+The values are dictionaries {"description": <string>, "category": <list>, "local_pdf": <string>}
 """
 
 """
@@ -28,7 +28,7 @@ class Biblio:
         if found_cat_dict:
             self.cat_dict = eval(found_cat_dict.group(0)[1:])
         else:
-            self.cat_dict = {"":"All","r":"To read"}
+            self.cat_dict = {1: "To read"}
 
         contents_no_comments = re.sub("^%(.*?)\n","",contents, flags = re.MULTILINE)
 
@@ -47,11 +47,11 @@ class Biblio:
             self.link_comment_entry(e)
 
         #Finally we remove the categories that did not show up in the flags
-        all_flags = ""
+        all_flags = []
         for e in self.entries.values():
             for c in e.flags:
                 if not c in all_flags:
-                    all_flags += c
+                    all_flags.append(c)
 
         for l in list(self.cat_dict.keys()):
             if not l in all_flags:
@@ -122,7 +122,7 @@ class Biblio:
     def link_comment_entry(self, e):
         """Links the content of the comment section to the description of the entry"""
         e.description = self.comment_entries.get(e.inspire_id, {"description":"Not found"})["description"]
-        e.flags = self.comment_entries.get(e.inspire_id, {"category":""})["category"]
+        e.flags = self.comment_entries.get(e.inspire_id, {"category":[]})["category"]
         e.local_pdf = self.comment_entries.get(e.inspire_id, {"local_pdf":""})["local_pdf"]
 
     @classmethod
@@ -288,8 +288,8 @@ class Biblio:
             if len(t) < 4:
                 t = t + ["" for i in range(4-len(t))]
             inspire_id = t[0].strip(" \t")
-            d = {"description": t[1].strip(" \t"), "category": t[2].strip(" \t"), "local_pdf": t[3].strip(" \t")}
-            final.update({inspire_id:d})
+            d = {"description": t[1].strip(" \t"), "category": t[2].strip(" \t").split(), "local_pdf": t[3].strip(" \t")}
+            final.update({inspire_id: d})
 
         return final
 
@@ -297,7 +297,7 @@ class Biblio:
         """Writes the whole string enclosed in @COMMENT. To be used for saving on file"""
         string = "%" + str(self.cat_dict) + "\n\n@COMMENT{\n"
         for key, entry in self.comment_entries.items():
-            string += "{} | {} | {} | {}\n".format(key, entry["description"], entry["category"], entry["local_pdf"])
+            string += "{} | {} | {} | {}\n".format(key, entry["description"], " ".join(entry["category"]), entry["local_pdf"])
         return string + "}\n\n"
 
     def parse_search(self, string):
@@ -319,7 +319,7 @@ class Biblio:
         marks.append(None)
         for i, mark in enumerate(marks[1:]):
             splitted.append(string[marks[i]+1: mark])
-        splitted = [a.strip("\"") for a in splitted if a is not ""]
+        splitted = [a.strip("\"") for a in splitted if a != ""]
 
         splitted = iter(splitted)
         search_query = []
