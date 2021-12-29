@@ -922,9 +922,9 @@ class Root:
         response = s.response
 
         self.biblio.cat_dict.update(response)
-        self.current_category = ""
+        self.current_category = []
         for a in list(response.keys()):
-            self.current_category += a
+            self.current_category.append(a)
 
         # Here I do part of the things done in create_menu(). I do not recall it to avoid recursion
         self.category_dict = self.biblio.cat_dict
@@ -932,8 +932,12 @@ class Root:
         self.categories = list(self.category_dict.values())
 
         self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
-        self.dropdown_set_val.set(
-            "Multiple groups" if len(self.current_category) > 1 else self.category_dict[self.current_category])
+        if len(self.current_category) == 0:
+            self.dropdown_set_val.set("All")
+        elif len(self.current_category) == 1:
+            self.dropdown_set_val.set(self.category_dict[self.current_category[0]])
+        else:
+            self.dropdown_set_val.set("Multiple groups")
         self.dropdown_set = OptionMenu(self.frame_right, self.dropdown_set_val, *self.categories)
         self.dropdown_set.children["menu"].add_separator()
         self.dropdown_set.children["menu"].add_command(label="Choose more", command=self.on_change_flags_other)

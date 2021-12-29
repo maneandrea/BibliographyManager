@@ -487,7 +487,7 @@ class Category_Selection():
         self.parent = parent
         self.current = current
         if self.current is None:
-            self.current = ""
+            self.current = []
         sel.wm_title(string = "Classify paper")
         wx = parent.master.winfo_rootx()
         wy = parent.master.winfo_rooty()
@@ -503,62 +503,88 @@ class Category_Selection():
         sel.label.configure(font = (None, 12), width = 50)
         sel.none = Button(sel, text = "Deselect all", command = self.on_deselect, font = (None, 12))
 
-        letters = self.letters = {}
-        for col in (0,1):
-            for l in ("acegikmoqsuwy", "bdfhjlnprtvxz")[col]:
-                v = IntVar()
-                DEJAVUSANSMONO = "Lucida Sans Typewriter" if os.name == "nt" else "DejaVu Sans Mono"
-                the_check = Checkbutton(sel, text = l, variable = v, font = (DEJAVUSANSMONO, 13))
-                the_check.var = v
-                the_string = StringVar()
-                the_entry = Entry(sel, textvariable = the_string, font = (None, 12), relief = SUNKEN, width = 20,
-                                  bg='white' if int(self.parent.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
-                the_string.trace("w", self.restore_color(the_entry))
-                the_entry.string = the_string
-                if l in parent.biblio.cat_dict.keys():
-                    the_string.set(parent.biblio.cat_dict[l])
-                if l in self.current:
-                    v.set(1)
-                letters[l] = {"check" : the_check, "entry" : the_entry, "col" : 2*col}
-
-        #Grid everything
-        sel.columnconfigure(0, weight = 0)
-        sel.columnconfigure(1, weight = 1)
-        sel.columnconfigure(2, weight = 0)
-        sel.columnconfigure(3, weight = 1)
-        sel.label.grid(column = 0, row = 0, sticky = "wen", columnspan = 4)
-        sel.none.grid(column = 1, row = 1, sticky = "nsw")
-
-        row = 1
-        for l in letters.values():
-            row += 1
-            l["check"].grid(column = l["col"], row = row-13*l["col"]//2, sticky = "ne")
-            l["entry"].grid(column = l["col"]+1, row = row-13*l["col"]//2, sticky = "nw")
-
-        sel.ok.grid(column = 0, row = row+1, sticky = "nwes", columnspan = 2)
-        sel.cancel.grid(column = 2, row = row+1, sticky = "nwes", columnspan = 2)
-
-        sel.rowconfigure(row, weight = 1)
-        sel.rowconfigure(row+1, weight = 0)
+        self.n_columns = 0
+        self.groups = {}
 
         #This ensures that the parent window cannot be interacted with
         sel.grab_set()
 
+        sel.bind("<Configure>", self.adjust_columns)
+
+    def adjust_columns(self, event=None):
+        w = event.width if event is not None else self.sel.winfo_width()
+        if w // 300 != self.n_columns and event.widget == self.sel:
+            self.n_columns = max(w // 300, 1)
+            max_groups = max(self.parent.biblio.cat_dict.keys())
+            col = 0
+            self.sel.rowconfigure(2, weight=1)
+            row = 3
+
+            for widget in self.sel.grid_slaves():
+                widget.grid_forget()
+
+            for count in range(1, max_groups+2):
+                v = IntVar()
+                DEJAVUSANSMONO = "Lucida Sans Typewriter" if os.name == "nt" else "DejaVu Sans Mono"
+                the_check = Checkbutton(self.sel, text = str(count), variable = v, font = (DEJAVUSANSMONO, 13))
+                the_check.var = v
+                the_string = StringVar()
+                the_entry = Entry(self.sel, textvariable = the_string, font = (None, 12), relief = SUNKEN, width = 20,
+                                  bg='white' if int(self.parent.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
+                the_string.trace("w", self.restore_color(the_entry))
+                the_entry.string = the_string
+                if count in self.parent.biblio.cat_dict.keys():
+                    the_string.set(self.parent.biblio.cat_dict[count])
+                elif count > max_groups:
+                    the_string.set('Add new group')
+                    the_entry.config(font = (None, 12, "italic"), fg="gray")
+                if count in self.current:
+                    v.set(1)
+                self.groups[count] = {"check" : the_check, "entry" : the_entry, "col" : 2*col+1, "row" : row}
+                if col == self.n_columns - 1:
+                    col = 0
+                    self.sel.rowconfigure(row, weight=1)
+                    row += 1
+                else:
+                    col += 1
+
+            # Grid everythig
+            self.sel.label.grid(column=1, row=0, sticky="wen", columnspan=2*self.n_columns+1)
+            self.sel.none.grid(column=2, row=1, sticky="nsw")
+            self.sel.columnconfigure(0, weight=1)
+            for col in range(self.n_columns):
+                self.sel.columnconfigure(2 * col + 1, weight=0)
+                self.sel.columnconfigure(2*col + 2, weight=1)
+            self.sel.columnconfigure(2*self.n_columns+1, weight=1)
+
+            for l in self.groups.values():
+                l["check"].grid(column=l["col"], row=l["row"], sticky="nw")
+                l["entry"].grid(column=l["col"] + 1, row=l["row"], sticky="nw")
+
+            self.sel.ok.grid(column=1, row=row + 1, sticky="nwes", columnspan=self.n_columns)
+            self.sel.cancel.grid(column=self.n_columns + 1, row=row + 1, sticky="nwes", columnspan=self.n_columns)
+
+            self.sel.rowconfigure(row, weight=1)
+            self.sel.rowconfigure(row + 1, weight=0)
+
+        else:
+            pass
+
     def restore_color(self, obj):
         """Restores the color to black"""
         def f(*event):
-            obj.configure(fg = "black")
+            obj.configure(fg = "black", font=(None, 12))
         return f
 
     def on_deselect(self):
         """Deselect all"""
-        for l in self.letters.values():
+        for l in self.groups.values():
             l["check"].var.set(0)
 
     def duplicate_free_q(self):
         sofar = []
         ret = True
-        for l in self.letters.values():
+        for l in self.groups.values():
             s = l["entry"].string.get()
             if not s == "":
                 if s in sofar:
@@ -569,7 +595,7 @@ class Category_Selection():
 
     def non_empty_q(self):
         ret = True
-        for l in self.letters.values():
+        for l in self.groups.values():
             if l["entry"].string.get() == "" and l["check"].var.get() == 1:
                l["entry"].string.set("Unnamed group")
                l["entry"].configure(fg = "red2")
@@ -582,9 +608,9 @@ class Category_Selection():
         c2 = self.non_empty_q()
         if c1 and c2:
             self.response = {}
-            for l in self.letters:
-                if self.letters[l]["check"].var.get() == 1:
-                    self.response[l] = self.letters[l]["entry"].string.get()
+            for l in self.groups:
+                if self.groups[l]["check"].var.get() == 1:
+                    self.response[l] = self.groups[l]["entry"].string.get()
             self.sel.destroy()
 
     def on_cancel(self):
