@@ -412,7 +412,7 @@ class Root:
         self.categories = ["All"] + list(self.category_dict.values())
         self.dropdown_set_val = StringVar()
         self.dropdown_set_val.set(self.categories[0])
-        self.current_category = ""
+        self.current_category = []
         self.dropdown_set = OptionMenu(self.frame_right, self.dropdown_set_val, *self.categories)
         self.dropdown_set.children["menu"].add_separator()
         self.dropdown_set.children["menu"].add_command(label="Choose more", command=self.on_change_flags_other)
@@ -762,7 +762,12 @@ class Root:
 
             # Here I temporarily suppress the callback to put the dropdown menu on Multiple groups
             self.dropdown_set_val.trace_vdelete("w", self.dropdown_set_val.trace_id)
-            self.dropdown_set_val.set(self.category_dict.get(entry.flags, "Multiple groups"))
+            if len(entry.flags) == 1:
+                self.dropdown_set_val.set(self.category_dict.get(entry.flags[0], "Group not found"))
+            elif len(entry.flags) == 0:
+                self.dropdown_set_val.set("All")
+            else:
+                self.dropdown_set_val.set("Multiple groups")
             self.dropdown_set_val.trace_id = self.dropdown_set_val.trace("w", self.on_change_flags)
             # Then I set the flags
             self.current_category = entry.flags
@@ -1172,12 +1177,20 @@ class Root:
         self.search_box.unbind("<Up>")
         self.search_box.unbind("<Down>")
 
-        flag = self.category_dict_inv[self.dropdown_filter_val.get()]
-        for e in self.biblio.entries.values():
-            if flag in e.flags:
-                e.visible = True
+        flag = self.category_dict_inv.get(self.dropdown_filter_val.get(), None)
+        if flag is None:
+            if self.dropdown_filter_val.get() == "All":
+                for e in self.biblio.entries.values():
+                    e.visible = True
             else:
-                e.visible = False
+                for e in self.biblio.entries.values():
+                    e.visible = False
+        else:
+            for e in self.biblio.entries.values():
+                if flag in e.flags:
+                    e.visible = True
+                else:
+                    e.visible = False
 
         self.load_data()
 

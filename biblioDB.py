@@ -292,7 +292,11 @@ class Biblio:
             if len(t) < 4:
                 t = t + ["" for i in range(4-len(t))]
             inspire_id = t[0].strip(" \t")
-            d = {"description": t[1].strip(" \t"), "category": t[2].strip(" \t").split(), "local_pdf": t[3].strip(" \t")}
+
+            def splint(string):
+                return [int(a) for a in string.split()]\
+
+            d = {"description": t[1].strip(" \t"), "category": splint(t[2].strip(" \t")), "local_pdf": t[3].strip(" \t")}
             final.update({inspire_id: d})
 
         return final
@@ -300,8 +304,12 @@ class Biblio:
     def comment_string(self):
         """Writes the whole string enclosed in @COMMENT. To be used for saving on file"""
         string = "%" + str(self.cat_dict) + "\n\n@COMMENT{\n"
+
+        def stjoin(intlist):
+            return " ".join([str(a) for a in intlist])
+
         for key, entry in self.comment_entries.items():
-            string += "{} | {} | {} | {}\n".format(key, entry["description"], " ".join(entry["category"]), entry["local_pdf"])
+            string += "{} | {} | {} | {}\n".format(key, entry["description"], stjoin(entry["category"]), entry["local_pdf"])
         return string + "}\n\n"
 
     def parse_search(self, string):
