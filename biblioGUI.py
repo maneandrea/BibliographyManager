@@ -7,6 +7,7 @@ from datetime import datetime
 import copy
 
 # My packages
+import biblioDB
 from otherWidgets import *  # Some functionalities are compatible with TkTreectrl
 from biblioDB import *
 from inspireQuery import *
@@ -211,6 +212,7 @@ class Root:
         self.filemenu.add_command(label="See .bib file", command=self.see_bibfile)
         self.export.add_command(label="Selected                  Ctrl+E", command=self.export_selected("w"))
         self.export.add_command(label="Selected (append)  Ctrl+Shift+E", command=self.export_selected("a"))
+        self.export.add_command(label="From .bbl", command=self.export_from_bbl)
         self.export.add_separator()
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Exit                          Ctrl+Q", command=self.on_close)
@@ -428,7 +430,7 @@ class Root:
 
         self.export.menus_already_there = []
         # Drop down menu for the export
-        self.export.delete(3, self.export.index("end"))
+        self.export.delete(4, self.export.index("end"))
         for cat in self.categories[1:]:
             self.export.add_command(label=cat, command=self.export_group(cat))
             self.export.menus_already_there.append(cat)
@@ -481,6 +483,72 @@ class Root:
                 print("Error occurred when saving file.")
 
         return f
+
+    def export_from_bbl(self):
+        """Exports the bibliography items found in a .bbl file"""
+
+        filename = filedialog.askopenfilename(initialdir=self.current_folder(), title="Select file",
+                                                filetypes=(("Bibliography files", "*.bbl"), ("All files", "*.*")))
+        if not filename:
+            print("No file selected. I did not do anything.")
+            return
+
+        try:
+            with open(filename, "r", encoding="utf-8") as file:
+                contents = file.read()
+        except (PermissionError, TypeError, FileNotFoundError) as e:
+            print("Error occurred when opening file.")
+
+        bibitem_list = re.finditer(r"\\bibitem\{([^}{]+)\}", contents)
+
+        default_bibentry = """@article{{{},
+    author = "Found, Not",
+    title = "{{Not Found}}",
+    eprint = "xxxx.xxxxx",
+    archivePrefix = "arXiv",
+    primaryClass = "hep-th"
+}}"""
+
+        not_found_entries = []
+
+        def default_item(name):
+            not_found_entries.append(name)
+
+            return biblioDB.Bibentry(
+                title = "Not found",
+                arxiv_no = "xxxx.xxxxx",
+                inspire_id = name,
+                bibentry = default_bibentry.format(name),
+                authors = [("Not", "Found")],
+                initials = "NF"
+            )
+
+        current_export = []
+        for item_matchobj in bibitem_list:
+            item = item_matchobj.group(1)
+            to_export = self.biblio.entries.get(item, None)
+            if to_export is None:
+                to_export = default_item(item)
+            current_export.append(to_export)
+
+        filename = filedialog.asksaveasfilename(initialdir=self.current_folder(), title="Select file",
+                                                filetypes=(("BibTeX files", "*.bib"), ("All files", "*.*")))
+        if not filename:
+            print("No file selected. I did not do anything.")
+            return
+        try:
+            with open(filename, f"w+", encoding="utf-8") as file:
+                for entry in current_export:
+                    file.write(entry.write())
+
+        except (PermissionError, TypeError, FileNotFoundError) as e:
+            print("Error occurred when saving file.")
+            return
+
+        if not_found_entries:
+            not_found_string = ', '.join(not_found_entries)
+            print('Some entries could not be found: ' + not_found_string)
+
 
     def on_status_bar_click(self, event):
         if self.status.get() == "An error occurred, see error.log (click here).":
