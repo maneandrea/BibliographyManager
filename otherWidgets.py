@@ -515,7 +515,10 @@ class Category_Selection():
         w = event.width if event is not None else self.sel.winfo_width()
         if w // 300 != self.n_columns and event.widget == self.sel:
             self.n_columns = max(w // 300, 1)
-            max_groups = max(self.parent.biblio.cat_dict.keys())
+            if len(self.parent.biblio.cat_dict.keys()) > 0:
+                max_groups = max(self.parent.biblio.cat_dict.keys())
+            else:
+                max_groups = 0
             col = 0
             self.sel.rowconfigure(2, weight=1)
             row = 3

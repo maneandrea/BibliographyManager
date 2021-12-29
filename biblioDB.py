@@ -30,9 +30,9 @@ class Biblio:
                 self.cat_dict = eval(found_cat_dict.group(0)[1:])
             except (SyntaxError, ValueError, NameError) as e:
                 print("Syntax error in the category dictionary: " + str(e))
-                self.cat_dict = {1: "To read"}
+                self.cat_dict = {}
         else:
-            self.cat_dict = {1: "To read"}
+            self.cat_dict = {}
 
         contents_no_comments = re.sub("^%(.*?)\n","",contents, flags = re.MULTILINE)
 
@@ -112,7 +112,7 @@ class Biblio:
             #Check that the whole string will compile on BibTex
             self.check_all(r)
 
-            #Finally save the entry
+            #Finally save the entrydropdown_set_val
             en = Bibentry(title = found_title,
                         arxiv_no = found_arxiv,
                         inspire_id = found_inspire_id,

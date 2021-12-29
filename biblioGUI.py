@@ -358,8 +358,8 @@ class Root:
             def flush(self):
                 pass
 
-        # sys.stdout = StandardOut(self.status, self.master, self.status_bar)
-        # sys.stderr = StandardErr('error.log')
+        sys.stdout = StandardOut(self.status, self.master, self.status_bar)
+        sys.stderr = StandardErr('error.log')
 
         # If the default file or given file exists, load it
         try:
@@ -1039,7 +1039,7 @@ class Root:
                 else:
                     print("I did not do anything.")
             else:
-                flaglong = ",".join([self.category_dict[a] for a in flag])
+                flaglong = ", ".join([self.category_dict[a] for a in flag])
                 grp, has = ("", "s") if len(flag) == 1 else ("s", "ve")
                 added = "assigned" if self.overwrite_flags else "added"
                 print(f"The group{grp} {flaglong} ha{has} been {added} to {len(sel)} entries.")
