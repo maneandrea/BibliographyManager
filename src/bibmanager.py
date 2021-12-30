@@ -19,7 +19,7 @@ def main():
 
     #Reads the config file if it exists
     try:
-        with open('bibconfig') as file:
+        with open(os.path.expanduser('~/.config/bibmanager/bibconfig')) as file:
             for l in file.readlines():
                 if l[0] != "#" and l != "\n":
                     equals = l.index("=")+1
