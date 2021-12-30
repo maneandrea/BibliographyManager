@@ -1,7 +1,7 @@
 # Maintainer: Andrea Manenti <andrea [dot] manenti [at] yahoo [dot] com>
 
 pkgname=bibmanager
-pkgver=34.3f9f876
+pkgver=35.fb0eebc
 pkgrel=1
 pkgdesc="Tool for managing a BibTeX bibliography file tailored for High Energy Theory "
 arch=(any)
@@ -9,9 +9,9 @@ license=('GPL')
 depends=('python-pillow' 'python-sympy')
 makedepends=('git')
 source=('git+https://github.com/maneandrea/BibliographyManager.git'
-        'bibmanager.desktop')
+        'bibmanager.config')
 sha256sums=('SKIP'
-            '5a3503a4522877c7a83f6b7555d91999b8832a4e4b6222e622fe755d5f9b6168')
+            'd12b08616f689a924ab869dbb8ce69eaeed126f58fb021c5bd37028b52cf342e')
 
 pkgver() {
         cd "$srcdir"/BibliographyManager
@@ -43,9 +43,12 @@ package() {
     mkdir -p $_pypath/Icons
     ln -sf /usr/share/pixmaps/bibmanager.png $_pypath/Icons/icon.png
 
-    cd "$srcdir"
-
     install -vDm 644 bibmanager.desktop ${pkgdir}/usr/share/applications/bibmanager.desktop
+
+    install -vDm 644 bibmanager.config ${pkgdir}/tmp/bibmanager.config
+
+    msg2 "Now, to put the config file do mkdir -p ~/.config/bibmanager && install -vDm 644 /tmp/bibmanager.config ~/.config/bibmanager/"
+
 
 }
 

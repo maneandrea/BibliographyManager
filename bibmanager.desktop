@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Terminal=false
+Exec=/usr/bin/bibmanager %U
+Name=BibManager
+Categories=Office;Science;
+Comment=Tool for managing BibTeX bibliography files
+Icon=/usr/share/pixmaps/bibmanager.ico
+StartupWMClass=Tk
