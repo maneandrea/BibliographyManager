@@ -1,0 +1,5 @@
+post_install() {
+	echo "message: a template config file was saved in /tmp, copy it by doing"
+	echo "    mkdir -p ~/.config/bibmanager && install -vDm 644 /tmp/bibmanager.config ~/.config/bibmanager/"
+}
+
