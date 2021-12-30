@@ -12,7 +12,15 @@ from otherWidgets import *  # Some functionalities are compatible with TkTreectr
 from biblioDB import *
 from inspireQuery import *
 
-icon = os.path.join(os.path.dirname(__file__),"Icons","icon.png")
+path1 = os.path.join(os.path.dirname(__file__),"..","Icons","icon.png")
+path2 = os.path.join(os.path.dirname(__file__),"Icons","icon.png")
+
+if os.path.isfile(path1):
+    icon = path1
+elif os.path.isfile(path2):
+    icon = path2
+else:
+    icon = None
 
 """
 Add the Undo-Redo functionalities to the bibentry textbox
@@ -343,7 +351,10 @@ class Root:
             """Redirect standard err to a log file with datestamps"""
 
             def __init__(self, path):
-                self.path = os.path.dirname(os.path.realpath(__file__)) + "/" + path
+                if os.path.isdir("/var/log"):
+                    self.path = "/var/log/" + path
+                else:
+                    self.path = os.path.dirname(os.path.realpath(__file__)) + "/" + path
                 self.last_write = datetime(1999, 1, 1)
 
             def write(self, text):
@@ -359,7 +370,7 @@ class Root:
                 pass
 
         sys.stdout = StandardOut(self.status, self.master, self.status_bar)
-        sys.stderr = StandardErr('error.log')
+        sys.stderr = StandardErr('bibmanager_error.log')
 
         # If the default file or given file exists, load it
         try:
@@ -962,7 +973,11 @@ class Root:
 
     def on_change_flags(self, *args):
         """Event called when a new value from the selection dropdown menu is changed and it's not 'Choose more'"""
-        self.current_category = [self.category_dict_inv[self.dropdown_set_val.get()]]
+        curr = self.dropdown_set_val.get()
+        if curr == "All":
+            self.current_category = []
+        else:
+            self.current_category = [self.category_dict_inv[curr]]
 
     def on_update(self):
         """Event: the button "Update" has been pressed"""
@@ -1079,7 +1094,7 @@ class Root:
         self.paper_title.text_set("Title")
         self.paper_authors.text_set("Authors")
         self.arxiv_link.set("n/a")
-        self.dropdown_set_val.set(self.category_dict[""])
+        self.dropdown_set_val.set("All")
 
         self.local_pdf_label.grid_forget()
         self.current_pdf_path = ""
