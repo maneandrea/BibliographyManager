@@ -19,7 +19,7 @@ def main():
 
     #Reads the config file if it exists
     try:
-        with open(os.path.expanduser('~/.config/bibmanager/bibconfig')) as file:
+        with open(os.path.expanduser('~/.config/bibmanager/bibmanager.config')) as file:
             for l in file.readlines():
                 if l[0] != "#" and l != "\n":
                     equals = l.index("=")+1
@@ -28,7 +28,7 @@ def main():
                     val = val.strip("\n ")
                     if key == 'default_file':
                         if os.path.isabs(val):
-                            ini_path = val
+                            ini_path = os.path.expanduser(val)
                         else:
                             ini_path = dir_path + "/" + val
                     elif key == 'overwrite_flags':
@@ -37,7 +37,7 @@ def main():
                         ini_def_cat = val
                     elif key == 'default_pdf_path':
                         if os.path.isabs(val):
-                            default_pdf_path = val
+                            default_pdf_path = os.path.expanduser(val)
                         else:
                             default_pdf_path = dir_path + "/" + val
                     elif key == 'pdf_viewer':
