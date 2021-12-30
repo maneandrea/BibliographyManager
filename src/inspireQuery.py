@@ -59,7 +59,7 @@ class Query:
         """Gets the new paper from the file .arxiv_new.txt if exists"""
         if done_method_next is None:
             done_method_next = done_method
-        filepath = os.path.join(os.path.dirname(__file__), '.arxiv_new.txt')
+        filepath = os.path.join(os.path.expanduser('~/.cache/bibmanager'), '.arxiv_new.txt')
         if os.path.isfile(filepath):
             with open(filepath,'r') as f:
                 try:
