@@ -85,7 +85,10 @@ class Query:
         def done():
             results = cls.fetch_papers(category, verbose)
             content["papers"] = results
-            filepath = os.path.join(os.path.dirname(__file__), '.arxiv_new.txt')
+            folderpath = os.path.expanduser('~/.cache/bibmanager')
+            if not os.path.isdir(folderpath):
+                os.makedirs(folderpath)
+            filepath = os.path.join(folderpath, '.arxiv_new.txt')
             with open(filepath, 'w+') as f:
                 f.write(str(content))
             time.sleep(.1)

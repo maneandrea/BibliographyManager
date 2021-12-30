@@ -351,10 +351,10 @@ class Root:
             """Redirect standard err to a log file with datestamps"""
 
             def __init__(self, path):
-                if os.path.isdir("/var/log"):
-                    self.path = "/var/log/" + path
+                if os.path.isdir(os.path.expanduser("~/.local")):
+                    self.path = os.path.join(os.path.expanduser("~/.local"), path)
                 else:
-                    self.path = os.path.dirname(os.path.realpath(__file__)) + "/" + path
+                    self.path = os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
                 self.last_write = datetime(1999, 1, 1)
 
             def write(self, text):
