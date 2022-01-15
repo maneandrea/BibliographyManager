@@ -683,9 +683,23 @@ class Root:
 
     def copy_to_clipboard(self, event=None):
         """Copies the inspire_id text to the system clipboard"""
-        self.master.clipboard_clear()
-        self.master.clipboard_append(self.inspire_text.get())
-        print(self.inspire_text.get() + " copied to clipboard")
+        read_text = self.inspire_text.get()
+        if read_text == 'double click to copy \\cite':
+            selection = self.paper_list.curselection()
+            if selection:
+                clipboard_string = ', '.join(
+                    [self.biblio.entries[self.paper_list.get(sel)[0]].inspire_id for sel in selection]
+                )
+                self.master.clipboard_clear()
+                self.master.clipboard_append(clipboard_string)
+                maxchar = self.max_characters() - 20
+                if len(clipboard_string) > maxchar:
+                    clipboard_string = clipboard_string[0:maxchar // 2] + "..." + clipboard_string[-maxchar // 2:]
+                print(clipboard_string + " copied to clipboard")
+        else:
+            self.master.clipboard_clear()
+            self.master.clipboard_append(read_text)
+            print(read_text + " copied to clipboard")
 
     def current_folder(self):
         """Simply returns the folder containing self.current_file"""
@@ -805,7 +819,7 @@ class Root:
 
             self.paper_title.latex_set("Multiple selection")
             self.arxiv_link.set("Multiple links")
-            self.inspire_text.set("<id>")
+            self.inspire_text.set("double click to copy \\cite")
             self.comment.set(f"{len(selection)} papers selected.")
 
             self.local_pdf_label.grid_forget()
@@ -987,12 +1001,14 @@ class Root:
         flag = self.current_category
         sel = self.paper_list.curselection()
         ent = self.inspire_text.get()
-        remember_bib = self.biblio.entries[ent].bibentry if not ent == "<id>" else ""
+
+        not_single = ('<id>', 'doble click to copy \\cite')
+        remember_bib = self.biblio.entries[ent].bibentry if not ent in not_single else ""
 
         if len(sel) <= 1:
             # Modify or add only one paper
             if not ent == "":
-                if not ent == "<id>":
+                if not ent in not_single:
                     del self.biblio.entries[ent]
                     self.paper_list.delete(sel)
                 else:
@@ -1000,7 +1016,7 @@ class Root:
                 try:
                     ent = self.biblio.parse_raw_entry(bib, True)
                 except:
-                    if not ent == "<id>":
+                    if not ent in not_single:
                         print("An error occurred in parsing. I reverted the entry to its old state.")
                         ent = self.biblio.parse_raw_entry(remember_bib)
                     else:
