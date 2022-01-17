@@ -560,10 +560,9 @@ class Root:
             not_found_string = ', '.join(not_found_entries)
             print('Some entries could not be found: ' + not_found_string)
 
-
     def on_status_bar_click(self, event):
-        if self.status.get() == "An error occurred, see error.log (click here).":
-            errorfile = os.path.join(os.path.dirname(__file__), "error.log")
+        if self.status.get() == "An error occurred, see bibmanager_error.log (click here).":
+            errorfile = sys.stderr.path
             if os.name == 'nt':
                 # Not tested yet
                 os.system(f"cmd /C 'more {errorfile}'")
@@ -1002,7 +1001,7 @@ class Root:
         sel = self.paper_list.curselection()
         ent = self.inspire_text.get()
 
-        not_single = ('<id>', 'doble click to copy \\cite')
+        not_single = ('<id>', 'double click to copy \\cite')
         remember_bib = self.biblio.entries[ent].bibentry if not ent in not_single else ""
 
         if len(sel) <= 1:
