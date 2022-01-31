@@ -140,6 +140,7 @@ class Root:
         self.inspire_id.config(state="readonly", textvariable=self.inspire_text,
                                font=self.listfont, relief=FLAT, readonlybackground=masterr.cget('bg'))
         self.inspire_id.bind("<Double-Button-1>", self.copy_to_clipboard)
+        self.inspire_id.bind("<Double-Button-3>", self.copy_to_clipboard_rev)
 
         # Buttons with links to the ArXiv
         self.arxiv_link = StringVar()
@@ -681,14 +682,25 @@ class Root:
         self.paper_authors.adjust_wraplength(w)
 
     def copy_to_clipboard(self, event=None):
+        self.copy_to_clipboard_master(reverse=False)
+
+    def copy_to_clipboard_rev(self, event=None):
+        self.copy_to_clipboard_master(reverse=True)
+
+    def copy_to_clipboard_master(self, reverse=False):
         """Copies the inspire_id text to the system clipboard"""
         read_text = self.inspire_text.get()
         if read_text == 'double click to copy \\cite':
             selection = self.paper_list.curselection()
             if selection:
-                clipboard_string = ', '.join(
-                    [self.biblio.entries[self.paper_list.get(sel)[0]].inspire_id for sel in selection]
-                )
+                if reverse:
+                    clipboard_string = ', '.join(
+                        [self.biblio.entries[self.paper_list.get(sel)[0]].inspire_id for sel in reversed(selection)]
+                    )
+                else:
+                    clipboard_string = ', '.join(
+                        [self.biblio.entries[self.paper_list.get(sel)[0]].inspire_id for sel in selection]
+                    )
                 self.master.clipboard_clear()
                 self.master.clipboard_append(clipboard_string)
                 maxchar = self.max_characters() - 20
