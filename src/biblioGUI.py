@@ -180,6 +180,7 @@ class Root:
         self.search_box.config(textvariable=self.search_string, font=self.listfont,
                                bg='white' if int(self.frame_right.cget('bg').replace('#','0x'),16) > 8388607 else '#222222')
         self.search_box.bind("<<Paste>>", self.custom_paste)
+        self.search_box.bind("<KP_Enter>", self.on_search)
         self.tooltip = CreateToolTip(master, self.search_box,
                                      text="Prepend a to search by author, t by title, d by description, "
                                           "n by ArXiv number and nothing by all.\nGroup words with quotes. The search ignores cases.")
