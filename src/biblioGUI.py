@@ -12,15 +12,30 @@ from otherWidgets import *  # Some functionalities are compatible with TkTreectr
 from biblioDB import *
 from inspireQuery import *
 
-path1 = os.path.join(os.path.dirname(__file__),"..","Icons","icon.png")
-path2 = os.path.join(os.path.dirname(__file__),"Icons","icon.png")
+path1 = os.path.join(os.path.dirname(__file__), "..", "Icons")
+path2 = os.path.join(os.path.dirname(__file__), "Icons")
 
-if os.path.isfile(path1):
-    icon = path1
-elif os.path.isfile(path2):
-    icon = path2
+if os.path.isdir(path1):
+    icon_path = os.path.join(path1, "icon.png")
+    pdf_icon_path = os.path.join(path1, "pdf.png")
+    inspire_icon_path = os.path.join(path1, "inspire.png")
+    arxiv_icon_path = os.path.join(path1, "arxiv.png")
+    bibtex_icon_path = os.path.join(path1, "bibtex.png")
+    update_icon_path = os.path.join(path1, "update.png")
+elif os.path.isdir(path2):
+    icon_path = os.path.join(path2, "icon.png")
+    pdf_icon_path = os.path.join(path2, "pdf.png")
+    inspire_icon_path = os.path.join(path2, "inspire.png")
+    arxiv_icon_path = os.path.join(path2, "arxiv.png")
+    bibtex_icon_path = os.path.join(path2, "bibtex.png")
+    update_icon_path = os.path.join(path2, "update.png")
 else:
-    icon = None
+    icon_path = None
+    pdf_icon_path = None
+    inspire_icon_path = None
+    arxiv_icon_path = None
+    bibtex_icon_path = None
+    update_icon_path = None
 
 """
 Add the Undo-Redo functionalities to the bibentry textbox
@@ -53,7 +68,8 @@ class Root:
         # Window config
         self.master = master
         master.protocol("WM_DELETE_WINDOW", self.on_close)
-        master.call('wm', 'iconphoto', master._w, PhotoImage(file=icon))
+        if icon_path:
+            master.call('wm', 'iconphoto', master._w, PhotoImage(file=icon_path))
         master.title("Bibliography - " + self.current_file.split("/")[-1])
         self.paned = PanedWindow(master)
         self.paned.config(sashrelief=RAISED, sashwidth=8)
@@ -144,14 +160,30 @@ class Root:
 
         # Buttons with links to the ArXiv
         self.arxiv_link = StringVar()
+        self.arxiv_link.set("n/a")
         self.arxiv_abs = Button(masterr)
         self.arxiv_pdf = Button(masterr)
+        self.inspire_page = Button(masterr)
         self.arxiv_abs.config(textvariable=self.arxiv_link, font=self.listfont, command=self.on_arxiv_abs())
+        if arxiv_icon_path:
+            self.arxiv_icon = PhotoImage(file=arxiv_icon_path)
+            self.arxiv_abs.config(image=self.arxiv_icon, compound=LEFT)
+        self.inspire_page.config(text="Inspire", font=self.listfont, command=self.on_inspire_page())
+        if inspire_icon_path:
+            self.inspire_icon = PhotoImage(file=inspire_icon_path)
+            self.inspire_page.config(image=self.inspire_icon, compound=LEFT)
         self.arxiv_pdf.config(text="PDF", font=self.listfont, command=self.on_arxiv_pdf())
+        if pdf_icon_path:
+            self.pdf_icon = PhotoImage(file=pdf_icon_path)
+            self.arxiv_pdf.config(image=self.pdf_icon, compound=LEFT)
 
         # Button that gets the bibtex text from Inspire
         self.get_bibtex = Button(masterr)
         self.get_bibtex.config(text="Get Bibtex", font=self.listfont, command=self.on_get_bibtex, state=DISABLED)
+        if bibtex_icon_path:
+            self.bibtex_icon = PhotoImage(file=bibtex_icon_path)
+            self.get_bibtex.config(image=self.bibtex_icon, compound=LEFT)
+
 
         # Text box to edit the paper comments
         self.comment = StringVar()
@@ -164,6 +196,9 @@ class Root:
         # Button for updating the new data
         self.update_paper = Button(masterr)
         self.update_paper.config(text="Update", font=self.listfont, command=self.on_update, state=DISABLED)
+        if update_icon_path:
+            self.update_icon = PhotoImage(file=update_icon_path)
+            self.update_paper.config(image=self.update_icon, compound=LEFT)
 
         # Buttons for deleting and adding
         self.add_paper = Button(masterl)
@@ -256,6 +291,7 @@ class Root:
         self.pdfmenu.add_command(label="Open PDF online", command=self.on_arxiv_pdf(True))
         self.pdfmenu.add_command(label="Open local PDF", command=self.on_arxiv_pdf(), state=DISABLED)
         self.pdfmenu.add_command(label="Open abstract page", command=self.on_arxiv_abs())
+        self.pdfmenu.add_command(label="Open inspire page", command=self.on_inspire_page())
         self.pdfmenu.add_separator()
         self.pdfmenu.add_command(label="Link to local PDF", command=self.on_link_pdf)
         self.pdfmenu.add_command(label="Unlink from local PDF", command=self.on_unlink_pdf)
@@ -287,25 +323,31 @@ class Root:
         masterl.columnconfigure(0, weight=1)
         masterl.columnconfigure(1, weight=1)
         masterl.columnconfigure(2, weight=2)
-        masterl.columnconfigure(3, weight=0)
+        masterl.columnconfigure(3, weight=1)
         masterr.columnconfigure(0, weight=1)
+        masterr.columnconfigure(1, weight=1)
+        masterr.columnconfigure(2, weight=1)
+        masterr.columnconfigure(3, weight=0)
         masterl.rowconfigure(1, weight=1)
         masterl.rowconfigure(2, weight=0)
-        masterr.rowconfigure(4, weight=1)
+        masterr.rowconfigure(5, weight=1)
+        masterr.rowconfigure(6, weight=0)
+        masterr.rowconfigure(7, weight=0)
         self.paper_list.grid(row=1, column=0, columnspan=3, sticky="news")
         # self.dropdown_filter.grid(row = 0, column = 2, columnspan = 2, sticky = "news")
         self.add_paper.grid(row=0, column=0, sticky="news")
         self.select_all.grid(row=0, column=1, sticky="news")
         #
-        self.paper_title.grid(row=0, column=0, columnspan=4, sticky="nwe")
-        self.paper_authors.grid(row=1, column=0, columnspan=4, sticky="nwe")
-        self.inspire_id.grid(row=2, column=0, sticky="sw")
-        self.arxiv_abs.grid(row=2, column=1, sticky="se")
+        self.paper_title.grid(row=0, column=0, columnspan=5, sticky="nwe")
+        self.paper_authors.grid(row=1, column=0, columnspan=5, sticky="nwe")
+        self.inspire_id.grid(row=4, column=0, sticky="swe")
+        self.arxiv_abs.grid(row=2, column=0, sticky="swe")
+        self.inspire_page.grid(row=2, column=1, sticky="swe")
         self.arxiv_pdf.grid(row=2, column=2, sticky="swe")
         self.get_bibtex.grid(row=2, column=3, sticky="swe")
-        self.text_box.grid(row=3, column=0, sticky="news")
-        self.bibentry.grid(row=4, column=0, columnspan=4, sticky="news")
-        self.status_bar.grid(row=6, column=0, columnspan=4, sticky="news")
+        self.text_box.grid(row=4, column=1, columnspan=3, sticky="news")
+        self.bibentry.grid(row=5, column=0, columnspan=4, sticky="news")
+        self.status_bar.grid(row=7, column=0, columnspan=4, sticky="news")
         # self.dropdown_set.grid(row = 3, column = 1, columnspan = 2, sticky = "news")
         self.update_paper.grid(row=3, column=3, sticky="news")
 
@@ -450,7 +492,7 @@ class Root:
 
         # I have to grid them here
         self.dropdown_filter.grid(row=0, column=2, columnspan=2, sticky="news")
-        self.dropdown_set.grid(row=3, column=1, columnspan=2, sticky="news")
+        self.dropdown_set.grid(row=3, column=0, columnspan=3, sticky="news")
 
     def export_group(self, cat):
         """Exports to a file only the papers that belong to a given group"""
@@ -776,7 +818,7 @@ class Root:
 
             # Grid the local pdf label if needed
             if entry.local_pdf != "":
-                self.local_pdf_label.grid(row=5, column=0, columnspan=4, sticky="news")
+                self.local_pdf_label.grid(row=6, column=0, columnspan=4, sticky="news")
                 maxchar = self.max_characters() - 13
                 if len(entry.local_pdf) > maxchar:
                     shortened = entry.local_pdf[0:maxchar // 2] + "..." + entry.local_pdf[-maxchar // 2:]
@@ -899,6 +941,14 @@ class Root:
 
         return f
 
+    def on_inspire_page(self):
+        """Event: load inspire page of article"""
+
+        def f():
+            url = ""
+
+        return f
+
     def on_arxiv_pdf(self, online_override=False):
         """Event: load arxiv PDF page or the local copy if exists"""
 
@@ -995,7 +1045,7 @@ class Root:
 
         # I have to grid them here
         self.dropdown_filter.grid(row=0, column=2, columnspan=2, sticky="news")
-        self.dropdown_set.grid(row=3, column=1, columnspan=2, sticky="news")
+        self.dropdown_set.grid(row=3, column=0, columnspan=3, sticky="news")
 
     def on_change_flags(self, *args):
         """Event called when a new value from the selection dropdown menu is changed and it's not 'Choose more'"""
