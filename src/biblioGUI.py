@@ -296,7 +296,7 @@ class Root:
         self.pdfmenu.add_command(label="Link to local PDF", command=self.on_link_pdf)
         self.pdfmenu.add_command(label="Unlink from local PDF", command=self.on_unlink_pdf)
         self.pdfmenu.add_command(label="Save PDF locally and link", command=self.on_save_pdf)
-        self.menu.add_cascade(label="PDF", menu=self.pdfmenu)
+        self.menu.add_cascade(label="View", menu=self.pdfmenu)
         #
         master.config(menu=self.menu)
 
@@ -326,8 +326,7 @@ class Root:
         masterl.columnconfigure(3, weight=1)
         masterr.columnconfigure(0, weight=1)
         masterr.columnconfigure(1, weight=1)
-        masterr.columnconfigure(2, weight=1)
-        masterr.columnconfigure(3, weight=0)
+        masterr.columnconfigure(2, weight=0)
         masterl.rowconfigure(1, weight=1)
         masterl.rowconfigure(2, weight=0)
         masterr.rowconfigure(5, weight=1)
@@ -341,15 +340,15 @@ class Root:
         self.paper_title.grid(row=0, column=0, columnspan=5, sticky="nwe")
         self.paper_authors.grid(row=1, column=0, columnspan=5, sticky="nwe")
         self.inspire_id.grid(row=4, column=0, sticky="swe")
-        self.arxiv_abs.grid(row=2, column=0, sticky="swe")
-        self.inspire_page.grid(row=2, column=1, sticky="swe")
-        self.arxiv_pdf.grid(row=2, column=2, sticky="swe")
-        self.get_bibtex.grid(row=2, column=3, sticky="swe")
-        self.text_box.grid(row=4, column=1, columnspan=3, sticky="news")
-        self.bibentry.grid(row=5, column=0, columnspan=4, sticky="news")
-        self.status_bar.grid(row=7, column=0, columnspan=4, sticky="news")
+        self.inspire_page.grid(row=2, column=0, sticky="swe")
+        self.arxiv_abs.grid(row=3, column=0, sticky="swe")
+        self.arxiv_pdf.grid(row=2, column=1, sticky="swe")
+        self.get_bibtex.grid(row=2, column=2, sticky="swe")
+        self.text_box.grid(row=4, column=1, columnspan=2, sticky="news")
+        self.bibentry.grid(row=5, column=0, columnspan=3, sticky="news")
+        self.status_bar.grid(row=7, column=0, columnspan=3, sticky="news")
         # self.dropdown_set.grid(row = 3, column = 1, columnspan = 2, sticky = "news")
-        self.update_paper.grid(row=3, column=3, sticky="news")
+        self.update_paper.grid(row=3, column=2, sticky="news")
 
         # For the tabbing order
         self.text_box.lift()
@@ -405,7 +404,7 @@ class Root:
                 with open(self.path, "a") as f:
                     n = datetime.now()
                     if (n - self.last_write).total_seconds() > 60:
-                        print("An error occurred, see error.log (click here).")
+                        print("An error occurred, see bibmanager_error.log (click here).")
                         f.write(datetime.now().strftime('[%a %d-%m-%Y %H:%M:%S]\n'))
                         self.last_write = datetime.now()
                     f.write(text)
@@ -491,8 +490,8 @@ class Root:
             self.export.menus_already_there.append(cat)
 
         # I have to grid them here
-        self.dropdown_filter.grid(row=0, column=2, columnspan=2, sticky="news")
-        self.dropdown_set.grid(row=3, column=0, columnspan=3, sticky="news")
+        self.dropdown_filter.grid(row=0, column=2, sticky="news")
+        self.dropdown_set.grid(row=3, column=1, sticky="news")
 
     def export_group(self, cat):
         """Exports to a file only the papers that belong to a given group"""
@@ -945,7 +944,27 @@ class Root:
         """Event: load inspire page of article"""
 
         def f():
-            url = ""
+            if self.arxiv_link.get() == "Multiple links":
+                selection = self.paper_list.curselection()
+                links = [(
+                    self.biblio.entries[self.paper_list.get(sel)[0]].arxiv_no,
+                    self.biblio.entries[self.paper_list.get(sel)[0]].inspire_id
+                ) for sel in selection]
+
+                if len(links) > 10:
+                    links = links[:10]
+            else:
+                links = [(self.arxiv_link.get(), self.inspire_text.get())]
+
+            for (link_arxiv, link_inspire) in links:
+                if link_arxiv != "n/a":
+                    # Use arxiv number
+                    webpage = Query.get_page(arxiv_no=link_arxiv, verbose=self.request_verbosity)
+                else:
+                    # Use inspire ID
+                    webpage = Query.get_page(inspire_id=link_inspire, verbose=self.request_verbosity)
+
+                webbrowser.open_new_tab(webpage)
 
         return f
 
@@ -1045,7 +1064,7 @@ class Root:
 
         # I have to grid them here
         self.dropdown_filter.grid(row=0, column=2, columnspan=2, sticky="news")
-        self.dropdown_set.grid(row=3, column=0, columnspan=3, sticky="news")
+        self.dropdown_set.grid(row=3, column=1, columnspan=2, sticky="news")
 
     def on_change_flags(self, *args):
         """Event called when a new value from the selection dropdown menu is changed and it's not 'Choose more'"""

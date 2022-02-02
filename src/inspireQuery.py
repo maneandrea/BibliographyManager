@@ -1,5 +1,6 @@
 import urllib.request
 import lxml.html
+import json
 import time
 import os
 from datetime import date
@@ -37,23 +38,66 @@ class Query:
         except urllib.error.HTTPError as err:
             if err.reason == 'Too Many Requests':
                 time.sleep(TIME_INTERVAL)
-                pprint("Too many requests, waiting .5 seconds...",0)
+                pprint("Too many requests, waiting .5 seconds...", 0)
                 try:
                     f = urllib.request.urlopen(url)
                     pprint("Second request successful, reading data...")
                     bibtex = f.read().decode('utf-8')
                 except:
-                    pprint("Paper with eprint {} not found even after waiting.".format(arxiv_no), 0)        
+                    pprint("Paper with eprint {} not found even after waiting.".format(arxiv_no), 0)
                     raise cls.PaperNotFound
-                    return ""
                 else:
                     return bibtex
             else:
-                pprint("Paper with eprint {} not found. HTTP response: {}".format(arxiv_no, err.reason), 0)        
+                pprint("Paper with eprint {} not found. HTTP response: {}".format(arxiv_no, err.reason), 0)
                 raise cls.PaperNotFound
-                return ""
         else:
             return bibtex
+
+    @classmethod
+    def get_page(cls, arxiv_no=None, inspire_id=None, verbose=1):
+        """Given the arxiv number of a paper or the bibtex identifier return the internal record identifier"""
+
+        def pprint(arg, verbosity=1):
+            # Prints only if the argument verbose of get is bigger than the verbosity of the message
+            if verbose > verbosity:
+                print(arg)
+
+        recid = None
+
+        if arxiv_no:
+            request_arxiv = f'literature/?q={arxiv_no}&format=json'
+            url = APIURL + request_arxiv
+
+            pprint("Now requesting...")
+            try:
+                f = urllib.request.urlopen(url)
+                pprint("Request successful, reading data...")
+                recid = json.load(f)['hits']['hits'][0]['id']
+            except urllib.error.HTTPError as err:
+                pprint("Paper with eprint {} not found. Trying with inspire ID".format(arxiv_no), 0)
+                pass
+
+        if inspire_id:
+            request_inspire = f'literature/?q={inspire_id}&format=json'
+            url = APIURL + request_inspire
+
+            pprint("Now requesting...")
+            try:
+                f = urllib.request.urlopen(url)
+                pprint("Request successful, reading data...")
+                recid = json.load(f)['hits']['hits'][0]['id']
+            except urllib.error.HTTPError as err:
+                pprint("Paper with Inspire ID {} not found.".format(inspire_id), 0)
+                raise cls.PaperNotFound
+            except KeyError:
+                pprint("Paper with Inspire ID {} does not have required keys.".format(inspire_id), 0)
+                raise cls.PaperNotFound
+
+        if recid:
+            return f"https://inspirehep.net/literature/{recid}"
+        else:
+            raise ValueError("Either Arxiv number or Inspire ID must be given")
 
     def list_papers(self, category, verbose, done_method, done_method_next = None):
         """Gets the new paper from the file .arxiv_new.txt if exists"""

@@ -43,6 +43,10 @@ package() {
 
     mkdir -p $_pypath/Icons
     ln -sf /usr/share/pixmaps/bibmanager.png $_pypath/Icons/icon.png
+    install -vDm 644 Icons/arxiv.png $_pypath/Icons/arxiv.png
+    install -vDm 644 Icons/inspire.png $_pypath/Icons/inspire.png
+    install -vDm 644 Icons/update.png $_pypath/Icons/update.png
+    install -vDm 644 Icons/bibtex.png $_pypath/Icons/bibtex.png
 
     install -vDm 644 bibmanager.desktop ${pkgdir}/usr/share/applications/bibmanager.desktop
 
