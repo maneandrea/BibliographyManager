@@ -47,6 +47,7 @@ package() {
     install -vDm 644 Icons/inspire.png $_pypath/Icons/inspire.png
     install -vDm 644 Icons/update.png $_pypath/Icons/update.png
     install -vDm 644 Icons/bibtex.png $_pypath/Icons/bibtex.png
+    install -vDm 644 Icons/pdf.png $_pypath/Icons/pdf.png
 
     install -vDm 644 bibmanager.desktop ${pkgdir}/usr/share/applications/bibmanager.desktop
 
