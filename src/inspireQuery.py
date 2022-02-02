@@ -90,7 +90,7 @@ class Query:
             except urllib.error.HTTPError as err:
                 pprint("Paper with Inspire ID {} not found.".format(inspire_id), 0)
                 raise cls.PaperNotFound
-            except KeyError:
+            except (KeyError, IndexError):
                 pprint("Paper with Inspire ID {} does not have required keys.".format(inspire_id), 0)
                 raise cls.PaperNotFound
 

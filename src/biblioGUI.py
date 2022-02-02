@@ -956,15 +956,18 @@ class Root:
             else:
                 links = [(self.arxiv_link.get(), self.inspire_text.get())]
 
-            for (link_arxiv, link_inspire) in links:
-                if link_arxiv != "n/a":
-                    # Use arxiv number
-                    webpage = Query.get_page(arxiv_no=link_arxiv, verbose=self.request_verbosity)
-                else:
-                    # Use inspire ID
-                    webpage = Query.get_page(inspire_id=link_inspire, verbose=self.request_verbosity)
+            try:
+                for (link_arxiv, link_inspire) in links:
+                    if link_arxiv != "n/a":
+                        # Use arxiv number
+                        webpage = Query.get_page(arxiv_no=link_arxiv, verbose=self.request_verbosity)
+                    else:
+                        # Use inspire ID
+                        webpage = Query.get_page(inspire_id=link_inspire, verbose=self.request_verbosity)
 
-                webbrowser.open_new_tab(webpage)
+                    webbrowser.open_new_tab(webpage)
+            except Query.PaperNotFound:
+                print("Paper not found on Inspire.")
 
         return f
 
