@@ -968,6 +968,8 @@ class Root:
                     webbrowser.open_new_tab(webpage)
             except Query.PaperNotFound:
                 print("Paper not found on Inspire.")
+            except ValueError:
+                print("No papers selected.")
 
         return f
 
@@ -1067,7 +1069,7 @@ class Root:
 
         # I have to grid them here
         self.dropdown_filter.grid(row=0, column=2, columnspan=2, sticky="news")
-        self.dropdown_set.grid(row=3, column=1, columnspan=2, sticky="news")
+        self.dropdown_set.grid(row=3, column=1, sticky="news")
 
     def on_change_flags(self, *args):
         """Event called when a new value from the selection dropdown menu is changed and it's not 'Choose more'"""
