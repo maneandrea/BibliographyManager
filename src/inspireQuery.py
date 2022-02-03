@@ -27,7 +27,7 @@ class Query:
             if verbose > verbosity:
                 print(arg)
 
-        request = f'arxiv/{arxiv_no}?format=bibtex'
+        request = f'arxiv/{arxiv_no}?format=bibtex'.replace(' ', '')
         url = APIURL + request
 
         pprint("Now requesting...")
@@ -66,7 +66,7 @@ class Query:
         recid = None
 
         if arxiv_no:
-            request_arxiv = f'literature/?q={arxiv_no}&format=json'
+            request_arxiv = f'literature/?q={arxiv_no}&format=json'.replace(' ', '%20')
             url = APIURL + request_arxiv
 
             pprint("Now requesting...")
