@@ -410,7 +410,7 @@ class Arxiv_prompt():
         choose.wm_title(string = "Preprint number")
         wx = parent.master.winfo_rootx()
         wy = parent.master.winfo_rooty()
-        choose.geometry("380x120+%d+%d" % (wx+100, wy+100))
+        choose.geometry("380x140+%d+%d" % (wx+100, wy+100))
         choose.protocol("WM_DELETE_WINDOW", self.on_cancel)
         choose.label1 = Label(choose, anchor = "c", text = "Insert here the preprint number:",
                              font = (None, 12))
