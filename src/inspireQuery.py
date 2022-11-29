@@ -3,6 +3,7 @@ import lxml.html
 import json
 import time
 import os
+import re
 from datetime import date
 import threading
 
@@ -20,14 +21,21 @@ class Query:
         self.contents = None
 
     @classmethod
-    def get(cls, arxiv_no, verbose = 1):
+    def get(cls, query, verbose = 1):
         """Given the arxiv number of a paper requests the Bibtex entry to Inspire's API"""
         def pprint(arg, verbosity = 1):
             #Prints only if the argument verbose of get is bigger than the verbosity of the message
             if verbose > verbosity:
                 print(arg)
 
-        request = f'arxiv/{arxiv_no}?format=bibtex'.replace(' ', '')
+        if re.match(r"(.+):\d{4}[a-zA-Z]+", query):
+            request = f'literature/?q={query}&format=bibtex'.replace(' ', '').replace(':', '%3A')
+        elif re.match(r"(\d{4}\.\d{5})|([a-z-]+/\d+)", query):
+            request = f'arxiv/{query}?format=bibtex'.replace(' ', '')
+        else:
+            pprint("The query '{}' must match an arxiv identifier or an inspire label".format(query), 0)
+            raise cls.PaperNotFound
+
         url = APIURL + request
 
         pprint("Now requesting...")
@@ -44,15 +52,20 @@ class Query:
                     pprint("Second request successful, reading data...")
                     bibtex = f.read().decode('utf-8')
                 except:
-                    pprint("Paper with eprint {} not found even after waiting.".format(arxiv_no), 0)
+                    pprint("Paper with id {} not found even after waiting.".format(query), 0)
                     raise cls.PaperNotFound
                 else:
                     return bibtex
             else:
-                pprint("Paper with eprint {} not found. HTTP response: {}".format(arxiv_no, err.reason), 0)
+                pprint("Paper with id {} not found. HTTP response: {}".format(query, err.reason), 0)
                 raise cls.PaperNotFound
         else:
-            return bibtex
+            if bibtex:
+                return bibtex
+            else:
+                pprint("Query with inspre label {} produced no result".format(query), 0)
+                raise cls.PaperNotFound
+
 
     @classmethod
     def get_page(cls, arxiv_no=None, inspire_id=None, verbose=1):

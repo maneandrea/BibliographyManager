@@ -1003,20 +1003,20 @@ class Root:
 
     def on_get_bibtex(self):
         """Event: load on textbox the Bibtex entry from Inspire"""
-        link = self.arxiv_link.get()
-        if self.arxiv_link.get() in ["n/a", ""]:
-            # link = simpledialog.askstring(title="Preprint number",
-            #                              prompt="Insert here the preprint number:")
-            d = Arxiv_prompt(self,
-                             lambda done: self.newQuery.list_papers(self.def_cat.get(), self.request_verbosity, done))
-            self.master.wait_window(d.choose)
-            link = d.response
-            if link is None or link == "":
-                print("I did not do anything.")
-                return None
-        if self.arxiv_link.get() == "Multiple links":
+        link = self.arxiv_link.get() 
+
+        if link == "Multiple links":
             self.update_all()
         else:
+            if link in ["n/a", ""]:
+                d = Arxiv_prompt(self,
+                                 lambda done: self.newQuery.list_papers(self.def_cat.get(), self.request_verbosity, done))
+                self.master.wait_window(d.choose)
+                link = d.response
+                if link is None or link == "":
+                    print("I did not do anything.")
+                    return None
+
             try:
                 text = Query.get(link, self.request_verbosity)
             except Query.PaperNotFound:

@@ -412,7 +412,7 @@ class Arxiv_prompt():
         wy = parent.master.winfo_rooty()
         choose.geometry("380x140+%d+%d" % (wx+100, wy+100))
         choose.protocol("WM_DELETE_WINDOW", self.on_cancel)
-        choose.label1 = Label(choose, anchor = "c", text = "Insert here the preprint number:",
+        choose.label1 = Label(choose, anchor = "c", text = "Insert preprint number or inspire label:",
                              font = (None, 12))
         choose.label2 = Button(choose, anchor = "c", text = "Or choose one of the new papers",
                              font = (None, 12), command = self.fill_papers, width = 30)
