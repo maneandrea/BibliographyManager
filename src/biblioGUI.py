@@ -253,8 +253,11 @@ class Root:
         self.filemenu.add_command(label="Save (no comments)                ", command=self.on_save_nocomments)
         self.filemenu.add_separator()
         self.export = Menu(self.filemenu, tearoff=0, font=self.listfont)
+        self.importbbl = Menu(self.filemenu, tearoff=0, font=self.listfont)
+        self.filemenu.add_cascade(label="Import...", menu=self.importbbl)
         self.filemenu.add_cascade(label="Export...", menu=self.export)
         self.filemenu.add_command(label="See .bib file", command=self.see_bibfile)
+        self.importbbl.add_command(label="From .bbl", command=self.import_from_bbl)
         self.export.add_command(label="Selected                  Ctrl+E", command=self.export_selected("w"))
         self.export.add_command(label="Selected (append)  Ctrl+Shift+E", command=self.export_selected("a"))
         self.export.add_command(label="From .bbl", command=self.export_from_bbl)
@@ -537,6 +540,66 @@ class Root:
                 print("Error occurred when saving file.")
 
         return f
+
+    def import_from_bbl(self):
+        """Imports the bibliography items found in a .bbl file"""
+
+        filename = filedialog.askopenfilename(initialdir=self.current_folder(), title="Select file",
+                                                filetypes=(("Bibliography files", "*.bbl"), ("All files", "*.*")))
+        if not filename:
+            print("No file selected. I did not do anything.")
+            return
+
+        try:
+            with open(filename, "r", encoding="utf-8") as file:
+                contents = file.read()
+        except (PermissionError, TypeError, FileNotFoundError) as e:
+            print("Error occurred when opening file.")
+
+        bibitem_list = re.finditer(r"\\bibitem\{([^}{]+)\}", contents)
+
+        default_bibentry = """@article{{{},
+    author = "Found, Not",
+    title = "{{Not Found}}",
+    eprint = "xxxx.xxxxx",
+    archivePrefix = "arXiv",
+    primaryClass = "hep-th"
+}}"""
+
+        self.disable_buttons()
+
+        not_found_entries = []
+
+        def default_item(name):
+            not_found_entries.append(name)
+            return default_bibentry.format(name)
+
+        current_export = []
+        for item_matchobj in bibitem_list:
+            item = item_matchobj.group(1)
+            to_import = self.biblio.entries.get(item, None)
+            if to_import is None:
+                try:
+                    text = Query.get(item, self.request_verbosity)
+                    if not text:
+                        text = default_item(item)
+                except Query.PaperNotFound:
+                    text = default_item(item)
+
+                item_id = self.biblio.parse_raw_entry(text)
+                self.biblio.comment_entries[item_id] = {"description": "entry imported from {}".format(filename), "category": [], "local_pdf": ""}
+                self.biblio.link_comment_entry(self.biblio.entries[item_id])
+
+        if not_found_entries:
+            not_found_string = ', '.join(not_found_entries)
+            print('Some entries could not be found: ' + not_found_string)
+
+        self.load_data()
+        self.is_modified = True
+        if self.current_file == None:
+            self.master.title("*Bibliography - Untitled")
+        else:
+            self.master.title("*Bibliography - " + self.current_file.split("/")[-1])
 
     def export_from_bbl(self):
         """Exports the bibliography items found in a .bbl file"""
