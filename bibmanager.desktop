@@ -7,5 +7,5 @@ Exec=/usr/bin/bibmanager %U
 Name=BibManager
 Categories=Office;Science;
 Comment=Tool for managing BibTeX bibliography files
-Icon=/usr/share/pixmaps/bibmanager.ico
+Icon=/usr/share/pixmaps/bibmanager.png
 StartupWMClass=Tk
