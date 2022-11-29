@@ -1079,6 +1079,8 @@ class Root:
                 if link is None or link == "":
                     print("I did not do anything.")
                     return None
+            elif not re.match(r"(\d{4}\.\d{5})|([a-z-]+/\d+)", link):
+                link = self.inspire_text.get()
 
             try:
                 text = Query.get(link, self.request_verbosity)
