@@ -271,6 +271,7 @@ class Root:
         self.editmenu.add_command(label="Remove", command=self.on_remove)
         self.editmenu.add_command(label="Update", command=self.on_update)
         self.editmenu.add_command(label="Get Bibtex", command=self.on_get_bibtex)
+        self.editmenu.add_command(label="Update unpublished", command=self.on_update_unpublished)
         self.catmenu = Menu(self.editmenu, tearoff=0, font=self.listfont)
         self.catmenu.add_radiobutton(label="hep-th", variable=self.def_cat, value="hep-th")
         self.catmenu.add_radiobutton(label="hep-ph", variable=self.def_cat, value="hep-ph")
@@ -538,6 +539,7 @@ class Root:
 
             except (PermissionError, TypeError, FileNotFoundError) as e:
                 print("Error occurred when saving file.")
+                return
 
         return f
 
@@ -555,6 +557,7 @@ class Root:
                 contents = file.read()
         except (PermissionError, TypeError, FileNotFoundError) as e:
             print("Error occurred when opening file.")
+            return
 
         bibitem_list = re.finditer(r"\\bibitem\{([^}{]+)\}", contents)
 
@@ -574,21 +577,42 @@ class Root:
             not_found_entries.append(name)
             return default_bibentry.format(name)
 
+        count = 0
+        animation = 0
+        sys.stdout.write("Fetching data from Inspire...|")
+        self.interrupt_process = False
         current_export = []
+
         for item_matchobj in bibitem_list:
+            if self.interrupt_process:
+                sys.stdout.flush()
+                print("\nUpdating process interrupted by keyboard")
+                break
             item = item_matchobj.group(1)
             to_import = self.biblio.entries.get(item, None)
             if to_import is None:
+                animation += 1
+                count += 1
                 try:
                     text = Query.get(item, self.request_verbosity)
                     if not text:
                         text = default_item(item)
                 except Query.PaperNotFound:
                     text = default_item(item)
+                    sys.stdout.flush()
+                else:
+                    # This is just an animation to show that the program is not frozen
+                    sys.stdout.write("\rFetching data from Inspire...{}".format(["|", "/", "-", "\\"][animation % 4]))
+                    sys.stdout.flush()
+                finally:
+                    item_id = self.biblio.parse_raw_entry(text)
+                    self.biblio.comment_entries[item_id] = {"description": "entry imported from {}".format(filename), "category": [], "local_pdf": ""}
+                    self.biblio.link_comment_entry(self.biblio.entries[item_id])
 
-                item_id = self.biblio.parse_raw_entry(text)
-                self.biblio.comment_entries[item_id] = {"description": "entry imported from {}".format(filename), "category": [], "local_pdf": ""}
-                self.biblio.link_comment_entry(self.biblio.entries[item_id])
+        if count == 1:
+            print("Loaded 1 paper.")
+        else:
+            print("Loaded {} papers.".format(count))
 
         if not_found_entries:
             not_found_string = ', '.join(not_found_entries)
@@ -615,6 +639,7 @@ class Root:
                 contents = file.read()
         except (PermissionError, TypeError, FileNotFoundError) as e:
             print("Error occurred when opening file.")
+            return
 
         bibitem_list = re.finditer(r"\\bibitem\{([^}{]+)\}", contents)
 
@@ -1090,6 +1115,12 @@ class Root:
                 self.remove_info()
                 self.bibentry.insert(1.0, text)
 
+    def on_update_unpublished(self):
+        """Event: update only papers which do not have a 'journal' entry"""
+        self.update_all_with_filter(
+            lambda e: not re.search('journal', e.bibentry)
+        )
+
     def on_change_flags_other(self, *args):
         """Event called when a new value from the selection dropdown menu is changed and 'Choose more' has been selected"""
         # Insert here the call to a new window for selecting the categories
@@ -1429,14 +1460,20 @@ class Root:
 
     def update_all(self):
         """Updates the bibtex entries of all papers"""
+        self.update_all_with_filter(lambda x: True)
+
+    def update_all_with_filter(self, filter_funct):
+        """Updates the bibtex entries of all papers only if they return True with the filter"""
         count = 0
         animation = 0
         sys.stdout.write("Fetching data from Inspire...|")
         sel = self.paper_list.curselection()
         if len(sel) > 0:
-            entries = [self.biblio.entries[self.paper_list.get(a)[0]] for a in sel]
+            all_entries = [self.biblio.entries[self.paper_list.get(a)[0]] for a in sel]
         else:
-            entries = self.biblio.entries.values()
+            all_entries = self.biblio.entries.values()
+
+        entries = filter(filter_funct, all_entries)
 
         self.interrupt_process = False
         for el in entries:
