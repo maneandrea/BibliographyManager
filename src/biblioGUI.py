@@ -1048,7 +1048,7 @@ class Root:
                 for (link_arxiv, link_inspire) in links:
                     if link_arxiv != "n/a":
                         # Use arxiv number
-                        webpage = Query.get_page(arxiv_no=link_arxiv, verbose=self.request_verbosity)
+                        webpage = Query.get_page(arxiv_no=link_arxiv, inspire_id=link_inspire, verbose=self.request_verbosity)
                     else:
                         # Use inspire ID
                         webpage = Query.get_page(inspire_id=link_inspire, verbose=self.request_verbosity)
@@ -1104,7 +1104,7 @@ class Root:
                 if link is None or link == "":
                     print("I did not do anything.")
                     return None
-            elif not re.match(r"(\d{4}\.\d{5})|([a-z-]+/\d+)", link):
+            elif not re.match(r"(\d{4}\.\d+)|([a-z-]+/\d+)", link):
                 link = self.inspire_text.get()
 
             try:
@@ -1117,6 +1117,7 @@ class Root:
 
     def on_update_unpublished(self):
         """Event: update only papers which do not have a 'journal' entry"""
+        self.paper_list.selection_clear(0, END)
         self.update_all_with_filter(
             lambda e: not re.search('journal', e.bibentry)
         )
@@ -1464,7 +1465,7 @@ class Root:
 
     def update_all_with_filter(self, filter_funct):
         """Updates the bibtex entries of all papers only if they return True with the filter"""
-        count = 0
+        updated = []
         animation = 0
         sys.stdout.write("Fetching data from Inspire...|")
         sel = self.paper_list.curselection()
@@ -1473,7 +1474,7 @@ class Root:
         else:
             all_entries = self.biblio.entries.values()
 
-        entries = filter(filter_funct, all_entries)
+        entries = list(filter(filter_funct, all_entries))
 
         self.interrupt_process = False
         for el in entries:
@@ -1485,10 +1486,10 @@ class Root:
                 animation += 1
                 try:
                     text = Query.get(el.arxiv_no, self.request_verbosity)
-                    if el.bibentry != text:
-                        count += 1
+                    if el.bibentry.strip('\n') != text.strip('\n'):
                         old_inspire_id = self.biblio.get_id(el.bibentry)
                         new_inspire_id = self.biblio.get_id(text)
+                        updated.append(new_inspire_id)
                         if old_inspire_id == new_inspire_id:
                             el.bibentry = text
                         else:
@@ -1508,10 +1509,19 @@ class Root:
                     sys.stdout.write("\rFetching data from Inspire...{}".format(["|", "/", "-", "\\"][animation % 4]))
                     sys.stdout.flush()
 
-        if count == 1:
-            print("Updated 1 entry.")
+
+        count = len(updated)
+        updated_text = ",".join(updated)
+        maxchar = self.max_characters() - 20
+        if len(updated_text) > maxchar:
+            updated_text = updated_text[0:maxchar // 2] + "..." + updated_text[-maxchar // 2:]
+
+        if count == 0:
+            print("Selected entries are up-to-date")
+        elif count == 1:
+            print("Updated 1 entry: {}".format(updated_text))
         else:
-            print("Updated {} entries.".format(count))
+            print("Updated {} entries: {}".format(count, updated_text))
         if count > 0:
             self.is_modified = True
             if self.current_file == None:

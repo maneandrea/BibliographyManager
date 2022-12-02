@@ -30,7 +30,7 @@ class Query:
 
         if re.match(r"(.+):\d{4}[a-zA-Z]+", query):
             request = f'literature/?q={query}&format=bibtex'.replace(' ', '').replace(':', '%3A')
-        elif re.match(r"(\d{4}\.\d{5})|([a-z-]+/\d+)", query):
+        elif re.match(r"(\d{4}\.\d+)|([a-z-]+/\d+)", query):
             request = f'arxiv/{query}?format=bibtex'.replace(' ', '')
         else:
             pprint("The query '{}' must match an arxiv identifier or an inspire label".format(query), 0)
@@ -90,6 +90,9 @@ class Query:
             except urllib.error.HTTPError as err:
                 pprint("Paper with eprint {} not found. Trying with inspire ID".format(arxiv_no), 0)
                 pass
+            except (KeyError, IndexError):
+                pprint("Paper with eprint {} not found. Trying with inspire ID".format(arxiv_no), 0)
+                pass
 
         if inspire_id:
             request_inspire = f'literature/?q={inspire_id}&format=json'
@@ -104,13 +107,16 @@ class Query:
                 pprint("Paper with Inspire ID {} not found.".format(inspire_id), 0)
                 raise cls.PaperNotFound
             except (KeyError, IndexError):
-                pprint("Paper with Inspire ID {} does not have required keys.".format(inspire_id), 0)
+                pprint("Paper with Inspire ID {} not found.".format(inspire_id), 0)
                 raise cls.PaperNotFound
 
         if recid:
             return f"https://inspirehep.net/literature/{recid}"
-        else:
+        elif inspire_id is None and arxiv_no is None:
             raise ValueError("Either Arxiv number or Inspire ID must be given")
+        else:
+            raise cls.PaperNotFound
+
 
     def list_papers(self, category, verbose, done_method, done_method_next = None):
         """Gets the new paper from the file .arxiv_new.txt if exists"""
