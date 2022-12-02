@@ -1091,12 +1091,13 @@ class Root:
 
     def on_get_bibtex(self):
         """Event: load on textbox the Bibtex entry from Inspire"""
-        link = self.arxiv_link.get() 
+        link_arxiv = self.arxiv_link.get() 
+        link_inspire = self.inspire_text.get()
 
-        if link == "Multiple links":
+        if link_arxiv == "Multiple links":
             self.update_all()
         else:
-            if link in ["n/a", ""]:
+            if link_arxiv in ["n/a", ""] and link_inspire in ["<id>", ""]:
                 d = Arxiv_prompt(self,
                                  lambda done: self.newQuery.list_papers(self.def_cat.get(), self.request_verbosity, done))
                 self.master.wait_window(d.choose)
@@ -1104,8 +1105,10 @@ class Root:
                 if link is None or link == "":
                     print("I did not do anything.")
                     return None
-            elif not re.match(r"(\d{4}\.\d+)|([a-z-]+/\d+)", link):
-                link = self.inspire_text.get()
+            elif re.match(r"(\d{4}\.\d+)|([a-z-]+/\d+)", link_arxiv):
+                link = link_arxiv
+            else:
+                link = link_inspire
 
             try:
                 text = Query.get(link, self.request_verbosity)
@@ -1483,31 +1486,35 @@ class Root:
                 print("\nUpdating process interrupted by keyboard")
                 break
             if el.arxiv_no not in ["n/a", ""]:
-                animation += 1
-                try:
-                    text = Query.get(el.arxiv_no, self.request_verbosity)
-                    if el.bibentry.strip('\n') != text.strip('\n'):
-                        old_inspire_id = self.biblio.get_id(el.bibentry)
-                        new_inspire_id = self.biblio.get_id(text)
-                        updated.append(new_inspire_id)
-                        if old_inspire_id == new_inspire_id:
-                            el.bibentry = text
-                        else:
-                            self.biblio.entries[new_inspire_id] = self.biblio.entries[old_inspire_id].copy()
-                            self.biblio.entries[new_inspire_id].bibentry = text
-                            self.biblio.entries[new_inspire_id].inspire_id = new_inspire_id
-                            self.biblio.comment_entries[new_inspire_id] = self.biblio.comment_entries[
-                                old_inspire_id].copy()
-                            self.biblio.link_comment_entry(self.biblio.entries[new_inspire_id])
-                            del self.biblio.entries[old_inspire_id]
-                            del self.biblio.comment_entries[old_inspire_id]
+                link = el.arxiv_no
+            else:
+                link = el.inspire_id
 
-                except Query.PaperNotFound:
-                    sys.stdout.flush()
-                else:
-                    # This is just an animation to show that the program is not frozen
-                    sys.stdout.write("\rFetching data from Inspire...{}".format(["|", "/", "-", "\\"][animation % 4]))
-                    sys.stdout.flush()
+            animation += 1
+            try:
+                text = Query.get(link, self.request_verbosity)
+                if el.bibentry.strip('\n') != text.strip('\n'):
+                    old_inspire_id = self.biblio.get_id(el.bibentry)
+                    new_inspire_id = self.biblio.get_id(text)
+                    updated.append(new_inspire_id)
+                    if old_inspire_id == new_inspire_id:
+                        el.bibentry = text
+                    else:
+                        self.biblio.entries[new_inspire_id] = self.biblio.entries[old_inspire_id].copy()
+                        self.biblio.entries[new_inspire_id].bibentry = text
+                        self.biblio.entries[new_inspire_id].inspire_id = new_inspire_id
+                        self.biblio.comment_entries[new_inspire_id] = self.biblio.comment_entries[
+                            old_inspire_id].copy()
+                        self.biblio.link_comment_entry(self.biblio.entries[new_inspire_id])
+                        del self.biblio.entries[old_inspire_id]
+                        del self.biblio.comment_entries[old_inspire_id]
+
+            except Query.PaperNotFound:
+                sys.stdout.flush()
+            else:
+                # This is just an animation to show that the program is not frozen
+                sys.stdout.write("\rFetching data from Inspire...{}".format(["|", "/", "-", "\\"][animation % 4]))
+                sys.stdout.flush()
 
 
         count = len(updated)
