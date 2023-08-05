@@ -67,8 +67,8 @@ class Biblio:
         if id_match is None:
             if not_a_comment:
                 raise self.ParseError("Missing inspire_id in\n" + r)
-            elif re.search("@COMMENT{", r):
-                self.comment_entries = self.parse_comments(r.replace("@COMMENT", "").strip("\n{} "))
+            elif re.search("@COMMENT{", r, flags=re.IGNORECASE):
+                self.comment_entries = self.parse_comments(re.sub("@COMMENT", "", r, flags=re.IGNORECASE).strip("\n{} "))
             else:
                 raise self.ParseError("Comment header not valid\n" + r.split("\n")[0])
         else:
